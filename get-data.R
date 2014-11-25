@@ -1,9 +1,9 @@
 ### This R code builds my brand new spanking database with the following variables:
-### 1. Alpha Country name (country): polity
-### 2. Numeric Country Code (ccode): polity
-### 3. Alpha Country Code (scode): polity
-### 4. 2 Letter WDI code (X2lcode): WDI
-### 5. 3 letter WDI code (X3lcode): WDI
+### 1. Country name (country): countrycode package
+### 2. Numeric Country Code (ccode): COW
+### 3. Alpha Country Code (scode): COW
+### 4. 2 Letter WDI code (X2lcode): WB
+### 5. 3 letter WDI code (worldbank): WB
 ### 6. UN numeric code (un): UN
 ### 7. Year (year): polity
 ### 8. Institutionalized Democracy: (democ): polity
@@ -31,9 +31,9 @@
 ### 30. NYT human rights articles
 ### 31. Region
 
-
 library("foreign")
 library("WDI")
+library("countrycode")
 rm(list=ls())
 setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
 
@@ -52,88 +52,118 @@ battle <- read.csv("Data/BattleDeaths/PRIO_bd3.0.csv")
 cnts <- read.csv("Data/CNTS/CNTSDATA.csv")
 pts <- load("/Users/rterman/Dropbox/berkeley/Dissertation/Data and Analyais/Git Repos/country-year-database/Data/PTS/PTS2012.RData") # load data
 amnesty <- read.csv("Data/Amnesty/total_amnesty2.csv")
+wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
+wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
+problem.countries <- read.csv("Data/problematic_countries.csv")
+counts <- read.csv("Data/NYT/country_year_counts.csv")
 
-##################################
-##### Start with CIRI scores #####
-##################################
+rt.old<- rt
+write.csv(rt.ciri,"rt.ciri.csv")
 
-names(ciri)
-rt <- subset(ciri, select=c(CTRY,YEAR,UNCTRY,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
-names(rt) <- c("country","year","un","ccode","unreg","physint","speech","new_empinx","wecon","wopol","wosoc","elecsd")
-names(rt)
-
-
-#################################
-##### Country Coding Issues #####
-#################################
-
-##### Fill in missing or wrong UN codes
-
-#Angola un code is 24
-rt$un[rt$country=="Angola"] <- 24
-#Namibia
-rt$un[rt$country=="Namibia"] <- 516
-#Yugoslavia
-rt$un[rt$country=="Yugoslavia"] <- 807
-#Germany East 276
-rt$un[rt$country=="Germany East"] <- 276
-#Vietnam
-rt$un[rt$country=="Vietnam"] <- 704
-#Ethiopia
-rt$un[rt$country=="Ethiopia"] <- 231
-#South Sudan
-rt$un[rt$country=="South Sudan"] <- 728
-#Yemen South
-rt$un[rt$country=="Yemen, South"] <- 720
-#Montenegro
-rt$un[rt$country=="Montenegro"] <- 499
-# USSR
-rt$un[rt$country=="Soviet Union"] <- 810
-#Kosovo
-rt$un[rt$country=="Kosovo"] <-NA
-# Taiwan
-rt$un[rt$country=="Taiwan"] <- NA
-#Serbia
-rt$un[rt$country=="Serbia"] <- 688
-#Serbia and Montenegro
-rt$un[rt$country=="Serbia and Montenegro"] <- 891
-
-###### Merge with 2-letter and 3-letter codes number for WDI
-
-names(codes)
-codes.sub <- subset(codes,select=c(X2lcode,X3lcode,un))
-names(codes.sub)
-
-rt.merge <- merge(codes.sub,rt,by="un",all.y=TRUE)
-rt <- rt.merge
-
-no.code.countries <- unique(rt$country[is.na(rt$X2lcode)])
-no.code.countries <- subset(rt,is.na(rt$X2lcode),select=c("country","year","un","ccode"))
-
-####### Add 1980 to the mix
-
-data1980 <- subset(rt,year==1981)
-data1980$year <- 1980
-data1980[,8:14] <- NA
-
-rt <- rbind(rt,data1980)
-rt <- rt[order(rt$country),] # order by country name
-
-write.csv(rt,"rt1a.csv")
-
-##### Deal with problematic countries
-
-rt <- rt[-which(rt$country=="Czech Republic" & rt$year<1993),]
-rt.merge <- rt[-which(rt$country=="Czechoslovakia" & rt$year>1992),]
-
-rt <- rt[-which(rt$country=="Serbia" & rt$year<2006),]
-rt <- rt[-which(rt$country=="Serbia and Montenegro" & rt$year>2005),]
-
-##### Merge with polity data to get country, year, ccode, polity, polity2, autoc, democ
+#############################
+##### Start with Polity #####
+#############################
 
 names(polity)
-polity.sub <- subset(polity,year > 1979, select=c(year,ccode,scode,polity,polity2,democ,autoc))
-rt <- merge(rt,polity.sub,by = c("ccode","year"),all.x = TRUE) # merge
+rt.polity <- subset(polity, year>1979 & year < 2013,select=c(ccode,scode,country,year,polity,polity2,democ,autoc))
+rt <- rt.polity
+
+# delete some weird countries
+
+# Sudan-North
+rt <- rt[-which(rt$country=="Sudan-North"),]
+
+###############
+#### Codes ####
+###############
+
+### write function for problematic countries
+get.code <- function(index,code){
+  rtindex <- which(names(rt)==code) # get the index for the code column in rt
+  pcindex <- which(names(problem.countries)==code)
+  country <- rt$country[index]
+  country <- as.character(country)
+  return(problem.countries[problem.countries$country==country,pcindex])
+}
+
+as.character(get.code(4497,"worldbank"))
+
+#### UN ####
+############
+
+rt$un <- countrycode(rt$ccode,"cown","un") #UN
+
+#### Missing UN codes
+index <- which(is.na(rt$un))
+rt$un[index] <- unlist(lapply(index,get.code,code="un"))
+
+# Sudan post 2011
+rt$un[rt$country=="Sudan" & rt$year >2010] <- 29
+
+
+unique(rt$country[is.na(rt$un)])
+
+#### WB ####
+############
+
+### WB 3L Code
+
+rt$worldbank <- countrycode(rt$un,"un","wb") #worldbank
+unique(rt$country[is.na(rt$worldbank)])
+
+## Missing Codes
+index <- which(is.na(rt$worldbank))
+rt$worldbank[index] <- as.character(unlist(lapply(index,get.code,code="worldbank")))
+
+### WB Region
+
+rt$wbregion <- countrycode(rt$worldbank,"wb","region") #worldbank region
+unique(rt$wbregion)
+
+## Missing Codes
+index <- which(is.na(rt$wbregion))
+rt$wbregion[index] <- as.character(unlist(lapply(index,get.code,code="wbregion")))
+
+unique(rt$country[is.na(rt$wbregion)])
+
+#### iso2c ####
+###############
+
+rt$iso2c <- countrycode(rt$worldbank,"wb","iso2c") #iso2c
+
+##### Missing codes
+index <- which(is.na(rt$iso2c))
+rt$iso2c[index] <- as.character(unlist(lapply(index,get.code,code="iso2c")))
+
+unique(rt$country[is.na(rt$iso2c)])
+
+#### iso3c ####
+###############
+
+rt$iso3c <- countrycode(rt$iso2c,"iso2c","iso3c") #iso2
+unique(rt$country[is.na(rt$iso3c)])
+
+##### Missing codes
+index <- which(is.na(rt$iso3c))
+rt$iso3c[index] <- as.character(unlist(lapply(index,get.code,code="iso3c")))
+
+##### Re-Order Columns
+rt <- rt[,c(4,3,1,2,9,10,11,12,13,5,6,7,8)]
+
+write.csv(rt,"rt.csv")
+
+###############
+#### CIRI ####
+###############
+
+names(ciri)
+ciri.subset <- subset(ciri, YEAR > 1979 & YEAR < 2013, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
+names(ciri.subset) <- c("year","ccode","unreg","physint","speech","new_empinx","wecon","wopol","wosoc","elecsd")
+rt.merge <- merge(rt,ciri.subset,by=c("year","ccode"),all.x=TRUE,incomparables=NA)
+x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
+x <- which(duplicated(x))
+rt.merge <- rt.merge[-x,]
+rt <- rt.merge
 
 ###############
 ##### GDP #####
@@ -142,7 +172,7 @@ rt <- merge(rt,polity.sub,by = c("ccode","year"),all.x = TRUE) # merge
 # From World Bank Development Indicators
 
 WDIsearch(string="gdp per capita")
-wdi.gdp <- WDI(country = "all", indicator = c("NY.GDP.PCAP.CD"), start = 1980, end = 2013) #download data
+wdi.gdp <- WDI(country = "all", indicator = c("NY.GDP.PCAP.CD"), start = 1980, end = 2012) #download data
 names(wdi.gdp) # GDP per capita (current US$)
 write.csv(wdi.gdp,file="Data/WDI/wdi-gdp.csv") #write csv for later use
 rt$gdp.pc.wdi <- NA # initialize variable
@@ -150,13 +180,14 @@ rt$gdp.pc.wdi <- NA # initialize variable
 # write function to get gdp in wdi.gdp based on iso2c (2letter county codes) + year in rt
 get.gdp.wdi <- function(x,y){
   gdp <- wdi.gdp$NY.GDP.PCAP.CD[wdi.gdp$iso2c==x & wdi.gdp$year==y]
-  return(gdp)
+  return(gdp[1])
 } 
 
-rt$gdp.pc.wdi <- mapply(get.gdp.wdi,rt$X2lcode,rt$year) # apply to my data
-rt$gdp.pc.wdi <- as.character(rt$gdp.pc.wdi)
-rt$gdp.pc.wdi[rt$gdp.pc.wdi == "numeric(0)"] <- NA #get rid of that weird shit.
-rt$gdp.pc.wdi <- as.factor(rt$gdp.pc.wdi)
+rt$gdp.pc.wdi <- mapply(get.gdp.wdi,rt$iso2c,rt$year) # apply to my data
+#rt$gdp.pc.wdi <- as.character(rt$gdp.pc.wdi)
+#rt$gdp.pc.wdi[rt$gdp.pc.wdi == "numeric(0)"] <- NA #get rid of that weird shit.
+#rt$gdp.pc.wdi <- as.factor(rt$gdp.pc.wdi)
+summary(rt$gdp.pc.wdi)
 
 # From UN Data
 
@@ -166,26 +197,16 @@ names(un.gdp)
 # write function to get data
 get.gdp.un <- function(x,y){
   gdp <- un.gdp$Value[un.gdp$Country.or.Area.Code==x & un.gdp$Year==y]
-  return(gdp)
+  return(unlist(gdp))
 }
 
 # apply to my dataframe
-rt$country <- as.character(rt$country) # necessary
 rt$gdp.pc.un <- mapply(get.gdp.un,rt$un,rt$year) # apply to my data
-rt$gdp.pc.un <- as.character(rt$gdp.pc.un)
 rt$gdp.pc.un[rt$gdp.pc.un == "numeric(0)"] <- NA #get rid of that weird shit.
-rt$gdp.pc.un <- as.factor(rt$gdp.pc.un)
+rt$gdp.pc.un[grep("NA",rt$gdp.pc.un)] <- NA
+rt$gdp.pc.un <- as.double(rt$gdp.pc.un)
 summary(rt$gdp.pc.un)
 
-###############
-##### PTS #####
-###############
-
-names(PTS)
-pts <- subset(PTS,Year>1979, select=c("COW","Year","Amnesty","StateDept"))
-names(pts) <- c("ccode","year","amnesty","statedept")
-rt.merge <- merge(rt,pts,by=c("ccode","year"), all.x = TRUE)
-rt <- rt.merge
 
 ######################
 ##### Population #####
@@ -196,25 +217,36 @@ rt <- rt.merge
 WDIsearch(string="SP.POP.TOTL")
 wdi.pop <- WDI(country = "all", indicator = c("SP.POP.TOTL"), start = 1980, end = 2013) #download data
 names(wdi.pop) # GDP per capita (current US$)
-write.csv(wdi.gdp,file="Data/WDI/wdi-pop.csv") #write csv for later use
+write.csv(wdi.pop,file="Data/WDI/wdi-pop.csv") #write csv for later use
 rt$pop.wdi <- NA # initialize variable
 
 # write function to get gdp in wdi.gdp based on country + year in rt
 get.pop.wdi <- function(x,y){
   pop <- wdi.pop$SP.POP.TOTL[wdi.pop$iso2c==x & wdi.pop$year==y]
   return(pop)
-} 
+}
 
-rt$pop.wdi <- mapply(get.pop.wdi,rt$X2lcode,rt$year) # apply to my data
-rt$pop.wdi <- as.character(rt$pop.wdi)
+# apply to data
+rt$pop.wdi <- mapply(get.pop.wdi,rt$iso2c,rt$year) # apply to my data
 rt$pop.wdi[rt$pop.wdi == "numeric(0)"] <- NA #get rid of that weird shit.
-rt$pop.wdi <- as.factor(rt$pop.wdi)
+rt$pop.wdi <- as.double(rt$pop.wdi)
+summary(rt$pop.wdi)
+
+###############
+##### PTS #####
+###############
+
+names(PTS)
+pts <- subset(PTS,Year>1979 & Year<2013, select=c("COW","Year","Amnesty","StateDept"))
+names(pts) <- c("ccode","year","amnesty","statedept")
+rt.merge <- merge(rt,pts,by=c("ccode","year"), all.x = TRUE)
+rt <- rt.merge
 
 #########################################
 #### National Military Capabilities #####
 #########################################
 
-cinc.sub <- subset(cinc,year>1979,select=c("ccode","year","milper","cinc"))
+cinc.sub <- subset(cinc,year>1979 & year<2013,select=c("ccode","year","milper","cinc"))
 rt.merge <- merge(rt,cinc.sub,by=c("ccode","year"), all.x = TRUE)
 rt.merge$milper[rt.merge$milper=="-9"] <- NA # replace -9 with NA
 rt <- rt.merge
@@ -223,13 +255,19 @@ rt <- rt.merge
 #### Battle Deaths #####
 ########################
 
-battle.sub <- subset(battle,year>1979,select=c("year","bdeadbes","location"))
+battle.sub <- subset(battle,year>1979 & year<2013,select=c("year","bdeadbes","location"))
 names(battle.sub) <- c("year","bdeadbest","country")
 summary(battle.sub$country) # note there are some multiple countries here that I don't know what to do with - return to it later.
-rt.merge <- merge(rt,battle.sub,by=c("country","year"), all.x = TRUE)
+
+rt.merge <-merge(rt,battle.sub,by=c("country","year"), all.x = TRUE)
+x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
+x <- which(duplicated(x))
+x
+rt.merge <- rt.merge[-x,]
 rt.merge$bdeadbest[is.na(rt.merge$bdeadbest)] <- 0
 rt.merge$bdeadbest[rt.merge$bdeadbest == "-999"] <- NA 
 rt <- rt.merge
+summary(rt$bdeadbest)
 
 #####################
 ##### INGO ties #####
@@ -238,15 +276,24 @@ rt <- rt.merge
 rt.merge <- merge(rt,hafner,by=c("country","year"),all.x = TRUE)
 rt <- rt.merge
 
+unique(rt$country[is.na(rt$INGO_uia)])
+
 #####################################
 ##### CNTS - domestic stability #####
 #####################################
 
 names(cnts)
-cnts.sub <- subset(cnts,year>1979,select=c("year","Wbcode","domestic9"))
-names(cnts.sub) <- c("year","X3lcode","domestic9")
-rt.merge <- merge(rt,cnts.sub,by=c("year","X3lcode"),all.x=TRUE)
+cnts.sub <- subset(cnts,year>1979 & year<2013,select=c("year","Wbcode","domestic9"))
+names(cnts.sub) <- c("year","worldbank","domestic9")
+rt.merge <- merge(rt,cnts.sub,by=c("year","worldbank"),all.x=TRUE)
+x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
+x <- which(duplicated(x))
+x
+rt.merge <- rt.merge[-x,]
 rt <- rt.merge
+
+unique(rt$country[is.na(rt$domestic9)])
+
 
 ##################################
 ##### Amnesty Urgent Actions #####
@@ -254,7 +301,7 @@ rt <- rt.merge
 
 #define function
 amnesty$countrycode <- as.integer(amnesty$countrycode)
-amnesty$year <- as.integer(amensty$year)
+amnesty$year <- as.integer(amnesty$year)
 
 get.uas <- function(x,y){
   subset.data <- subset(amnesty,countrycode==x & year==y)
@@ -265,70 +312,34 @@ get.uas(516,2002)
 rt$amnesty.uas <- mapply(get.uas,x=rt$ccode,y=rt$year)
 summary(rt$amnesty.uas)
 
+# Assign NAs for all years < 1985
+rt$amnesty.uas[rt$year<1985] <- NA
+
+
 ##############################
 ##### NYT Media Coverage #####
 ##############################
 
-#define function
-total$COUNTRY_CODE <- as.integer(total$COUNTRY_CODE)
-total$YEAR <- as.integer(total$YEAR)
-
-get.nyt <- function(x,y){
-  subset.data <- subset(total,COUNTRY_CODE==x & YEAR==y)
-  return(as.integer(nrow(subset.data)))
+rt$nyt <- NA
+x <- list()
+n <- nrow(counts)
+n
+for(i in 1:n){
+  country <- counts$iso3c[i]
+  year <- counts$year[i]
+  count <- counts$count[i]
+  index <- which(rt$iso3c==country & rt$year==year)
+  if (length(index) > 0){
+    rt$nyt[index] <- count
+    } else x <- append(x,index)
 }
+x
 
-get.uas(2,2002)
-rt$nyt <- mapply(get.nyt,x=rt$ccode,y=rt$year)
-summary(rt$amnesty.uas)
-
-
-##################
-##### Region #####
-##################
-
-countries <- read.csv("Data/country_codes.csv")
-
-##Adding 3-letter codes to my country code list.
-
-get.letters <- function(x,y,z){
-  country.index <- which(z$Code==x)
-  z$X3lcode[country.index] <- as.character(y)
-  return(z$X3lcode)
-}
-
-countries$X3lcode <- NA
-
-for(i in 1:nrow(rt)){
-  countries$X3lcode <- get.letters(rt$ccode[i],rt$X3lcode[i],countries)
-}
-
-# export
-write.csv(countries,"country_codes.csv")
-
-rt$region <- NA
-
-get.region <- function(x,y,z){
-  country.index <- which(z$ccode==x)
-  z$region[country.index] <- as.character(y)
-  return(z$region)
-}
+# turn NAs to 0
+rt$nyt[which(is.na(rt$nyt))] <- 0
+rt$nyt[rt$year>2010] <- NA
 
 
-# Apply function to all countries in the key-value list
-n <- nrow(countries)
-for(i in 2:n){
-  rt$region <- get.region(countries$Code[i],countries$Region[i],rt)
-}
-
-### remove duplicate entries
-x <- which(duplicated(subset(rt,select=c("year","country"))))
-rt <- rt[-x,]
-
-#### Writing, reading, loving.
+###### Writing, reading, loving.
 rt$pop.wdi <- as.character(rt$pop.wdi)
-write.csv(rt,"rt2.csv")
-rt <- read.csv("rt2.csv")
-names(rt)
-rt$X <- NULL
-
+write.csv(rt,"rt.csv")
