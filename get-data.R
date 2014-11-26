@@ -1,35 +1,38 @@
 ### This R code builds my brand new spanking database with the following variables:
-### 1. Country name (country): countrycode package
-### 2. Numeric Country Code (ccode): COW
-### 3. Alpha Country Code (scode): COW
-### 4. 2 Letter WDI code (X2lcode): WB
-### 5. 3 letter WDI code (worldbank): WB
-### 6. UN numeric code (un): UN
-### 7. Year (year): polity
-### 8. Institutionalized Democracy: (democ): polity
-### 9. Institutionalized Autocracy (autoc): polity
-### 10. Combined Policy Score (polity + polity 2): polity 
-### 11. GDP per capita, current US$ (gdp.pc.wdi): World Bank Development Indicators
-### 12. GDP per capita, current US$ (gdp.pc.un): UN data
-### 13. UN region (unreg): CIRI
-### 14. CIRI physical integrity score (physint): CIRI
-### 15. CIRI freedom of speech score (speech): CIRI
-### 16. CIRI Empowerment Rights Index (new_empinx): CIRI
-### 17. CIRI Women’s Economic Rights (wecon): CIRI
-### 18. CIRI Women’s Political Rights (wopol): CIRI
-### 19. CIRI Women's Social Rights (wosoc): CIRI
-### 20. CIRI Electoral Self-Determination: CIRI
-### 21. PTS Amnesty (amnesty): PTS
-### 22. PTS State Department (statedept): PTS
-### 23. WDI population mid-year estimates (pop.wdi): World Bank Development Indicators
-### 24. Size of Military, (military personnel, thousands) (milper): Correlates of War, National Military Capabilities 
-### 25. Composite Index of Military Capabilities (cinc): Correlates of War, National Military Capabilities
-### 26. Number of battle deaths (bdeadbest): Bethany Lacina & Nils Petter Gleditsch, 2005. ‘Monitoring Trends in Global Combat: A New Dataset of Battle Deaths’, European Journal of Population 21(2–3): 145–166.
-### 27. Number of NGO ties (INGO_uia): Hafner-Burton and Tsutsui’s (2005)
-### 28. Domestic Conflict / Stability Index (domestic9): Cross National Time Series Data, Banks (2012)
-### 29. Amnesty Internatioanl UA's
-### 30. NYT human rights articles
-### 31. Region
+### 1. year: 1980-2012
+### 2. country: Country name (countrycode package)
+### 3. ccode: COW Numeric Country Code (countrycode package)
+### 4. scode: COW Alpha Country Code (countrycode package)
+### 5. un: UN county code (countrycode package)
+### 6. worldbank: 3 letter World Bank country code (countrycode package)
+### 7. wbregion: World Bank region (countrycode package)
+### 8. iso2c: 2 Letter iso code (countrycode package)
+### 9. iso3c: 3 letter iso code (countrycode package)
+### 10. polity: combined polity score (polity)
+### 11. polity2: combined polity score 2 (polity)
+### 12. democ: Institutionalized Democracy: (polity)
+### 13. autoc: Institutionalized Autocracy (polity)
+### 14. unreg: UN region (ciri)
+### 15. physint: CIRI physical integrity score (ciri)
+### 16. speech: CIRI freedom of speech score (ciri)
+### 17. new_empinx: CIRI Empowerment Rights Index (ciri)
+### 18. wecon: CIRI Women’s Economic Rights (ciri)
+### 19. wepol: CIRI Women’s Political Rights (ciri)
+### 20. wosoc: CIRI Women's Social Rights (ciri)
+### 21. elecsd: CIRI Electoral Self-Determination: (ciri)
+### 22. gdp.pc.wdi: GDP per capita, current US$ (World Bank Development Indicators)
+### 23. gdp.pc.un: GDP per capita, current US$ (UN data)
+### 24. pop.wdi: WDI population mid-year estimates (World Bank Development Indicators)
+### 25. amnesty: PTS Amnesty (PTS)
+### 26. statedept: PTS State Department (PTS)
+### 27. milper: Size of Military, (military personnel, thousands) (Correlates of War, National Military Capabilities, cinc)
+### 28. cinc: Composite Index of Military Capabilities (Correlates of War, National Military Capabilities, cinc)
+### 29. bdeadbest: Number of battle deaths. (Bethany Lacina & Nils Petter Gleditsch, 2005. ‘Monitoring Trends in Global Combat: A New Dataset of Battle Deaths’, European Journal of Population 21(2–3): 145–166.)
+### 30. INGO_uia: Number of NGO ties (Hafner-Burton and Tsutsui’s (2005))
+### 31. domestic8: Domestic Conflict / Stability Index (Cross National Time Series Data, Banks (2012))
+### 32. amnesty.uas: Amnesty Internatioanl UA's
+### 33. nyt: NYT human rights articles
+### 34. Region
 
 library("foreign")
 library("WDI")
@@ -341,5 +344,8 @@ rt$nyt[rt$year>2010] <- NA
 
 
 ###### Writing, reading, loving.
+
+rt <- rt[,c(1,3,4,5,6,2,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33)]
+
 rt$pop.wdi <- as.character(rt$pop.wdi)
 write.csv(rt,"rt.csv")
