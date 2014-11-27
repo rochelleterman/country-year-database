@@ -58,7 +58,7 @@ amnesty <- read.csv("Data/Amnesty/total_amnesty2.csv")
 wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
 wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
 problem.countries <- read.csv("Data/problematic_countries.csv")
-counts <- read.csv("Data/NYT/country_year_counts.csv")
+counts <- read.csv("Data/NYT_violations/country_year_counts.csv")
 
 rt.old<- rt
 write.csv(rt.ciri,"rt.ciri.csv")
@@ -323,6 +323,12 @@ rt$amnesty.uas[rt$year<1985] <- NA
 ##### NYT Media Coverage #####
 ##############################
 
+## make new code column
+
+rt$rt_code <- rt$iso3c
+rt$rt_code[rt$country=="Macedonia"] <- "MAC"
+
+
 rt$nyt <- NA
 x <- list()
 n <- nrow(counts)
@@ -331,7 +337,7 @@ for(i in 1:n){
   country <- counts$iso3c[i]
   year <- counts$year[i]
   count <- counts$count[i]
-  index <- which(rt$iso3c==country & rt$year==year)
+  index <- which(rt$rt_code==country & rt$year==year)
   if (length(index) > 0){
     rt$nyt[index] <- count
     } else x <- append(x,index)
@@ -342,9 +348,33 @@ x
 rt$nyt[which(is.na(rt$nyt))] <- 0
 rt$nyt[rt$year>2010] <- NA
 
+rt$nyt[rt$country=="United States"] <- NA
 
+##################
+##### Region #####
+###################
+
+rt$region<- NA
+n <- nrow(countries)
+for (i in 1:n){
+  country <- countries$iso3c[i]
+  rt$region[rt$rt_code==country]<-as.character(countries$Region[i])
+}
+unique(rt$country[is.na(rt$region)])
+
+rt$region[rt$country=="Czechoslovakia"] <- "EECA"
+rt$region[rt$country=="Yemen South"] <- "MENA"
+rt$region[rt$country=="Germany East"] <- "EECA"
+rt$region[rt$country=="Taiwan"] <- "Asia"
+rt$region[rt$country=="Serbia and Montenegro"] <- "EECA"
+rt$region[rt$country=="Serbia"] <- "EECA"
+rt$region[rt$country=="Yugoslavia"] <- "EECA"
+rt$region[rt$country=="Macedonia"] <- "EECA"
+
+rt$region <- as.factor(rt$region)
 ###### Writing, reading, loving.
 
+names(rt)
 rt <- rt[,c(1,3,4,5,6,2,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33)]
 
 rt$pop.wdi <- as.character(rt$pop.wdi)
