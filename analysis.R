@@ -4,7 +4,7 @@ setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Rep
 
 ############################################
 ##### Checking Region Counts to Varify #####
-############################################
+#############################################
 
 # define function
 region.per.year <- function(x,y){
