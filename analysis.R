@@ -1,6 +1,15 @@
 ###This R code conducts analysis on the data "rt.csv", which was collected with the R file getdata.R
 
+rm(list=ls())
+
 setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
+
+rt <- read.csv("rt.csv")
+rt$X <- NULL
+rt$X.1 <- NULL
+
+library("MASS")
+library("xtable")
 
 ############################################
 ##### Checking Region Counts to Varify #####
@@ -60,6 +69,16 @@ legend("topleft", c("Middle East", "Latin America", "Former Soviet Union","Asia"
        text.col = "black", lty = 1,
        merge = TRUE, bg = "gray90")
 
+#################################################
+##### Summary states #####
+#################################################
+
+mean(post.2001$nyt[post.2001$region=="MENA"],na.rm=TRUE)
+mean(post.2001$nyt[post.2001$region=="Asia"],na.rm=TRUE)
+mean(post.2001$nyt[post.2001$region=="Africa"],na.rm=TRUE)
+mean(post.2001$nyt[post.2001$region=="LA"],na.rm=TRUE)
+mean(post.2001$nyt[post.2001$region=="EECA"],na.rm=TRUE)
+mean(post.2001$nyt[post.2001$region=="West"],na.rm=TRUE)
 
 #################################################
 ##### Pre and Post 2001 Regression Analysis #####
@@ -68,14 +87,28 @@ legend("topleft", c("Middle East", "Latin America", "Former Soviet Union","Asia"
 
 pre.2001 <- rt[rt$year<2002,]
 pre.2001 <- pre.2001[-which(rt$country=="United States"),]
-post.2001 <- rt[rt$year>2002,]
+post.2001 <- rt[rt$year>2002 & rt$year < 2011,]
 post.2001 <- post.2001[-which(rt$country=="United States"),]
 names(rt)
-glm.1<-glm.nb(nyt ~ polity+polity2+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+amnesty+statedept+milper+cinc+bdeadbest+INGO_uia+domestic9+amnesty.uas+(relevel(region,4)), data = pre.2001) 
+set.seed(1234)
+
+glm.1<-glm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
 summary(glm.1)
 
-glm.2<-glm(nyt ~ polity+polity2+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+amnesty+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,5)), data = post.2001) 
+glm.2<-glm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,5)), data = post.2001,na.action=na.omit) 
 summary(glm.2)
 
+glm.3 <- glm(nyt ~ polity+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+amnesty+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,5)), data = post.2001, na.action=na.omit) 
+summary(glm.3)
+
+#### create xtable
+
+glm.2.table <- xtable(summary(glm.2),caption="Determinants of Media Coverage, 2001–2010", align="ccccc")
+print(glm.2.table)
+
+glm.1.table <- xtable(summary(glm.1),caption="Determinants of Media Coverage, 1980–2001", align="ccccc")
+print(glm.1.table)
+
 names(rt)
+
 

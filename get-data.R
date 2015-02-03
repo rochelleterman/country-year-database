@@ -58,7 +58,7 @@ amnesty <- read.csv("Data/Amnesty/total_amnesty2.csv")
 wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
 wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
 problem.countries <- read.csv("Data/problematic_countries.csv")
-counts <- read.csv("Data/NYT_violations/country_year_counts.csv")
+nyt <- read.csv("Data/NYT_violations/nyt.violations.csv")
 
 rt.old<- rt
 write.csv(rt.ciri,"rt.ciri.csv")
@@ -326,33 +326,26 @@ rt$amnesty.uas[rt$year<1985] <- NA
 ## make new code column
 
 rt$rt_code <- rt$iso3c
+rt$rt_code <- as.character(rt$rt_code)
 rt$rt_code[rt$country=="Macedonia"] <- "MAC"
 
+#define function
+nyt$YEAR <- as.integer(nyt$YEAR)
 
-rt$nyt <- NA
-x <- list()
-n <- nrow(counts)
-n
-for(i in 1:n){
-  country <- counts$iso3c[i]
-  year <- counts$year[i]
-  count <- counts$count[i]
-  index <- which(rt$rt_code==country & rt$year==year)
-  if (length(index) > 0){
-    rt$nyt[index] <- count
-    } else x <- append(x,index)
+get.nyt <- function(x,y){
+  subset.data <- subset(nyt,COUNTRY_CODE==x & YEAR==y)
+  return(as.integer(nrow(subset.data)))
 }
-x
 
-# turn NAs to 0
-rt$nyt[which(is.na(rt$nyt))] <- 0
-rt$nyt[rt$year>2010] <- NA
-
+get.nyt("MKD",1999)
+nyt.old <- rt$nyt
+rt$nyt <- mapply(get.nyt,x=as.character(rt$rt_code),y=rt$year)
 rt$nyt[rt$country=="United States"] <- NA
+summary(rt$nyt)
 
 ##################
 ##### Region #####
-###################
+##################
 
 rt$region<- NA
 n <- nrow(countries)
@@ -372,6 +365,43 @@ rt$region[rt$country=="Yugoslavia"] <- "EECA"
 rt$region[rt$country=="Macedonia"] <- "EECA"
 
 rt$region <- as.factor(rt$region)
+
+
+##################
+##### Lag DV #####
+##################
+
+
+lag.dv <- function(row){
+  country <- rt$country[row]
+  year <- as.integer(rt$year[row])
+  prev.year <- year-1
+  dv <- rt$nyt[rt$year==prev.year & rt$country==country]
+  if (length(dv) == 0){
+    dv <- "NA"
+    return(dv)
+  }
+  return(as.integer(dv))
+}
+
+# testing
+lag.dv(1) # should NA
+rt$nyt[rt$year==2001 & rt$country=="Afghanistan"] #3215
+which(rt$year==2002 & rt$country=="Afghanistan") #3378
+typeof(lag.dv(3378))
+
+# applying
+
+seq <- 1:nrow(rt)
+rt$nyt.lagged <- lapply(seq,lag.dv)
+
+# more testing
+rt$nyt.lagged <- unlist(rt$nyt.lagged)
+rt$nyt.lagged[rt$country=="El Salvador" & rt$year==2001]
+rt$nyt.lagged <- as.character(rt$nyt.lagged)
+rt$nyt.lagged <- as.integer(rt$nyt.lagged)
+
+
 ###### Writing, reading, loving.
 
 names(rt)
