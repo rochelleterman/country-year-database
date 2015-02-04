@@ -59,6 +59,7 @@ wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
 wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
 problem.countries <- read.csv("Data/problematic_countries.csv")
 nyt <- read.csv("Data/NYT_violations/nyt.violations.csv")
+am <- read.csv("Data/Amnesty/amnesty_processed.csv")
 
 rt.old<- rt
 write.csv(rt.ciri,"rt.ciri.csv")
@@ -70,6 +71,11 @@ write.csv(rt.ciri,"rt.ciri.csv")
 names(polity)
 rt.polity <- subset(polity, year>1979 & year < 2013,select=c(ccode,scode,country,year,polity,polity2,democ,autoc))
 rt <- rt.polity
+rt$polity[rt$polity < -10] <- NA
+rt$polity2[rt$polity2 < -10] <- NA
+
+summary(rt$polity)
+
 
 # delete some weird countries
 
@@ -401,6 +407,21 @@ rt$nyt.lagged[rt$country=="El Salvador" & rt$year==2001]
 rt$nyt.lagged <- as.character(rt$nyt.lagged)
 rt$nyt.lagged <- as.integer(rt$nyt.lagged)
 
+############################
+##### Amnesty Mentions #####
+############################
+
+# write function
+
+subset()
+
+am.mentions <- function(date,rt_code){
+  x <- sum(am[am$year==date,rt_code], na.rm=TRUE)
+  return(x)
+}
+am.mentions(2001,"AFG") # 25
+rt$am.mentions <- mapply(am.mentions,date=rt$year,rt_code=as.character(rt$rt_code))
+
 
 ###### Writing, reading, loving.
 
@@ -408,4 +429,5 @@ names(rt)
 rt <- rt[,c(1,3,4,5,6,2,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33)]
 
 rt$pop.wdi <- as.character(rt$pop.wdi)
+rt$nyt.lagged <-  as.character(rt$nyt.lagged)
 write.csv(rt,"rt.csv")

@@ -8,6 +8,9 @@ rt <- read.csv("rt.csv")
 rt$X <- NULL
 rt$X.1 <- NULL
 
+rt$pop.wdi <- as.integer(rt$pop.wdi)
+rt$nyt.lagged <- as.integer(rt$nyt.lagged)
+
 library("MASS")
 library("xtable")
 
@@ -69,9 +72,9 @@ legend("topleft", c("Middle East", "Latin America", "Former Soviet Union","Asia"
        text.col = "black", lty = 1,
        merge = TRUE, bg = "gray90")
 
-#################################################
+##########################
 ##### Summary states #####
-#################################################
+##########################
 
 mean(post.2001$nyt[post.2001$region=="MENA"],na.rm=TRUE)
 mean(post.2001$nyt[post.2001$region=="Asia"],na.rm=TRUE)
@@ -92,13 +95,13 @@ post.2001 <- post.2001[-which(rt$country=="United States"),]
 names(rt)
 set.seed(1234)
 
-glm.1<-glm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
+glm.1<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
 summary(glm.1)
 
-glm.2<-glm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,5)), data = post.2001,na.action=na.omit) 
+glm.2<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,5)), data = post.2001,na.action=na.omit) 
 summary(glm.2)
 
-glm.3 <- glm(nyt ~ polity+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+amnesty+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,5)), data = post.2001, na.action=na.omit) 
+glm.3 <- glm.nb(nyt ~ polity+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,5)), data = post.2001, na.action=na.omit) 
 summary(glm.3)
 
 #### create xtable
@@ -111,4 +114,9 @@ print(glm.1.table)
 
 names(rt)
 
+##########################
+##### Amnesty Analysis #####
+##########################
 
+glm.amnesty <- glm.nb(am.mentions ~ nyt+polity+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,4)), data = rt, na.action=na.omit) 
+summary(glm.amnesty)
