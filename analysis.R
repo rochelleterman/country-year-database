@@ -95,10 +95,10 @@ post.2001 <- post.2001[-which(rt$country=="United States"),]
 names(rt)
 set.seed(1234)
 
-glm.1<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
+glm.1<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+muslim+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
 summary(glm.1)
 
-glm.2<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,5)), data = post.2001,na.action=na.omit) 
+glm.2<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+muslim+(relevel(region,5)), data = post.2001,na.action=na.omit) 
 summary(glm.2)
 
 glm.3 <- glm.nb(nyt ~ polity+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,5)), data = post.2001, na.action=na.omit) 
@@ -118,5 +118,5 @@ names(rt)
 ##### Amnesty Analysis #####
 ##########################
 
-glm.amnesty <- glm.nb(am.mentions ~ nyt+polity+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,4)), data = rt, na.action=na.omit) 
+glm.amnesty <- glm.nb(am.mentions ~ amnesty.uas, data = rt, na.action=na.omit) 
 summary(glm.amnesty)

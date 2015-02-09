@@ -40,6 +40,9 @@ library("countrycode")
 rm(list=ls())
 setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
 
+rt <- read.csv("rt.csv")
+rt$X.1 <- NULL
+
 ###### Load other people's data to get started
 
 ron <- read.dta("Data/RonRamosThoms/file49964_ramos_ron_thoms_jpr_2007.dta")
@@ -309,7 +312,7 @@ unique(rt$country[is.na(rt$domestic9)])
 ##################################
 
 #define function
-amnesty$countrycode <- as.integer(amnesty$countrycode)
+amnesty$countrycode <- as.character(amnesty$countrycode)
 amnesty$year <- as.integer(amnesty$year)
 
 get.uas <- function(x,y){
@@ -317,8 +320,8 @@ get.uas <- function(x,y){
   return(as.integer(nrow(subset.data)))
 }
 
-get.uas(516,2002)
-rt$amnesty.uas <- mapply(get.uas,x=rt$ccode,y=rt$year)
+get.uas("ALB",1994)
+rt$amnesty.uas <- mapply(get.uas,x=rt$rt_code,y=rt$year)
 summary(rt$amnesty.uas)
 
 # Assign NAs for all years < 1985
@@ -422,6 +425,27 @@ am.mentions <- function(date,rt_code){
 am.mentions(2001,"AFG") # 25
 rt$am.mentions <- mapply(am.mentions,date=rt$year,rt_code=as.character(rt$rt_code))
 
+#####################
+##### Muslim? #######
+#####################
+
+get.muslim <- function(x,y){
+  muslim <- murdie$muslim[murdie$ccode==x &murdie$year==y]
+  return(muslim)
+} 
+
+get.muslim(402,1980)
+rt$muslim <- mapply(get.muslim,rt$ccode,rt$year) # apply to my data
+rt$muslim[rt$muslim == "numeric(0)"] <- NA
+rt$muslim[rt$year > 2005] <- NA
+
+rt$muslim <- unlist(rt$muslim)
+
+for (i in unique(rt$ccode)){
+  rt$muslim[rt$ccode == i & rt$ year > 2005] <- rt$muslim[rt$ccode == i & rt$year == 2005 ]
+}
+
+unique(rt$country[is.na(rt$muslim)])
 
 ###### Writing, reading, loving.
 
@@ -430,4 +454,5 @@ rt <- rt[,c(1,3,4,5,6,2,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26
 
 rt$pop.wdi <- as.character(rt$pop.wdi)
 rt$nyt.lagged <-  as.character(rt$nyt.lagged)
+rt$muslim <- as.character(rt$muslim)
 write.csv(rt,"rt.csv")
