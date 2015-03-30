@@ -8,85 +8,32 @@ library(ggplot2)
 library(reshape2)
 library("MASS")
 library("xtable")
+library(plm)
 
 # load data
 rt <- read.csv("rt.csv")
 names(rt)
 rt$X <- NULL
-rt$X.1 <- NULL
 
 rt$pop.wdi <- as.integer(rt$pop.wdi)
 rt$nyt.lagged <- as.integer(rt$nyt.lagged)
 
+rt.all <- rt
+rt <- subset(rt,!rt$country=="United States",)
 
 ############################################
 ##### Checking Region Counts to Varify #####
 #############################################
 
-# define function
-region.per.year <- function(x,y){
-  subset.data <- subset(rt,region==x & year==y)
-  return(as.integer(sum(subset.data$nyt,na.rm=TRUE)))
-}
+n.region.year <- ddply(.data=rt, .variables=.(year,region), .fun=summarize,"count"=sum(nyt))
+n.region.year
 
+ggplot(data=n.region.year, aes(x=year,y=count,group=region,color=region)) + geom_line()
 
-# create dataframe
-regions <- unique(rt$region[!is.na(rt$region)])
-regions
-number.news <- data.frame(regions)
+casted <- dcast(data = n.region.year, formula = year ~ region, value.var = "count")
 
-# fill in cells
+write.csv(casted,"region_year_counts.csv")
 
-start <-1980
-end <- 2010
-for(i in start:end){
-  number.news <- cbind(number.news,unlist(lapply(regions,region.per.year,y=i)))
-}
-names(number.news) <- c("regions",start:end)
-
-write.csv(number.news,"region_year_counts.csv")
-
-# Plot change in number over time
-
-rownames(number.news) <- number.news$regions
-number.news$regions
-number.news <- number.news[, !(colnames(number.news) %in% c("regions"))]
-rownames(number.news)
-x <- seq(1980,2010)
-m <- number.news[2,]
-l <- number.news[4,]
-c <- number.news[1,]
-a <- number.news[6,]
-w <- number.news[5,]
-f <- number.news[3,]
-
-plot(x,m,
-     xlab="year",
-     ylab="number of articles in NYT", # Change this for your data
-     main="Human Rights Violations Articles Over Time",
-     type="l",
-     col="red"
-)
-lines(x, l, type="l",col="green" )
-lines(x, c, type="l",col="yellow" )
-lines(x, a, type="l",col="blue" )
-lines(x, w, type="l",col="orange" )
-lines(x, f, type="l",col="purple" )
-
-legend("topleft", c("Middle East", "Latin America", "Former Soviet Union","Asia","West","Africa"), col = c("red", "green","yellow","blue","orange","purple"),
-       text.col = "black", lty = 1,
-       merge = TRUE, bg = "gray90")
-
-##########################
-##### Summary states #####
-##########################
-
-mean(post.2001$nyt[post.2001$region=="MENA"],na.rm=TRUE)
-mean(post.2001$nyt[post.2001$region=="Asia"],na.rm=TRUE)
-mean(post.2001$nyt[post.2001$region=="Africa"],na.rm=TRUE)
-mean(post.2001$nyt[post.2001$region=="LA"],na.rm=TRUE)
-mean(post.2001$nyt[post.2001$region=="EECA"],na.rm=TRUE)
-mean(post.2001$nyt[post.2001$region=="West"],na.rm=TRUE)
 
 #################################################
 ##### Pre and Post 2001 Regression Analysis #####
@@ -94,15 +41,22 @@ mean(post.2001$nyt[post.2001$region=="West"],na.rm=TRUE)
 
 
 pre.2001 <- rt[rt$year<2002,]
-pre.2001 <- pre.2001[-which(rt$country=="United States"),]
 post.2001 <- rt[rt$year>2002 & rt$year < 2011,]
-post.2001 <- post.2001[-which(rt$country=="United States"),]
 names(rt)
 set.seed(1234)
 
-glm.1<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+muslim+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
-summary(glm.1)
+# PLM
+test <- plm.data(pre.2001, c("ccode","year"))
+plm.1 <- plm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)),data = test,model = "within")
+summary(plm.1)
+fixef(plm.1)
+pFtest(plm.1, lm.1) 
 
+# LM
+lm.1<-lm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
+summary(lm.1)
+
+# GLM
 glm.2<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+muslim+(relevel(region,5)), data = post.2001,na.action=na.omit) 
 summary(glm.2)
 
