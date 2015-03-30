@@ -37,17 +37,18 @@
 library("foreign")
 library("WDI")
 library("countrycode")
+library("plm")
 rm(list=ls())
 setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
 
-rt <- read.csv("rt.csv")
-rt$X.1 <- NULL
+#rt <- read.csv("rt.csv")
+#rt$X.1 <- NULL
 
 ###### Load other people's data to get started
 
+meernick <- read.csv ("Data/Meernick/Merge\ of\ JCR\ data\ for\ AIUA\ Paper\ and\ COW\ State\ list.csv") # 1997 - 2007 / 2009
 ron <- read.dta("Data/RonRamosThoms/file49964_ramos_ron_thoms_jpr_2007.dta")
 murdie <- read.dta("Data/MurdiePeksendata/MurdiePeksenJOPDataFile.dta") # 1945 - 2005
-meernick <- read.csv ("Data/Meernick/Merge\ of\ JCR\ data\ for\ AIUA\ Paper\ and\ COW\ State\ list.csv") # 1997 - 2007 / 2009
 hafner <- read.dta("Data/Hafner/data_paradox.dta") # INGO ties, 1966 - 1999
 polity <- read.csv("Data/Polity/p4v2013.csv")
 ciri <- read.csv("Data/CIRI/CIRI_1981_2011.csv")
@@ -60,12 +61,10 @@ pts <- load("/Users/rterman/Dropbox/berkeley/Dissertation/Data and Analyais/Git 
 amnesty <- read.csv("Data/Amnesty/total_amnesty2.csv")
 wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
 wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
-problem.countries <- read.csv("Data/problematic_countries.csv")
 nyt <- read.csv("Data/NYT_violations/nyt.violations.csv")
 am <- read.csv("Data/Amnesty/amnesty_processed.csv")
-
-rt.old<- rt
-write.csv(rt.ciri,"rt.ciri.csv")
+problem.countries <- read.csv("problematic_countries.csv")
+countries <- read.csv("country_codes.csv")
 
 #############################
 ##### Start with Polity #####
@@ -111,7 +110,6 @@ rt$un[index] <- unlist(lapply(index,get.code,code="un"))
 
 # Sudan post 2011
 rt$un[rt$country=="Sudan" & rt$year >2010] <- 29
-
 
 unique(rt$country[is.na(rt$un)])
 
@@ -307,27 +305,6 @@ rt <- rt.merge
 unique(rt$country[is.na(rt$domestic9)])
 
 
-##################################
-##### Amnesty Urgent Actions #####
-##################################
-
-#define function
-amnesty$countrycode <- as.character(amnesty$countrycode)
-amnesty$year <- as.integer(amnesty$year)
-
-get.uas <- function(x,y){
-  subset.data <- subset(amnesty,countrycode==x & year==y)
-  return(as.integer(nrow(subset.data)))
-}
-
-get.uas("ALB",1994)
-rt$amnesty.uas <- mapply(get.uas,x=rt$rt_code,y=rt$year)
-summary(rt$amnesty.uas)
-
-# Assign NAs for all years < 1985
-rt$amnesty.uas[rt$year<1985] <- NA
-
-
 ##############################
 ##### NYT Media Coverage #####
 ##############################
@@ -349,8 +326,28 @@ get.nyt <- function(x,y){
 get.nyt("MKD",1999)
 nyt.old <- rt$nyt
 rt$nyt <- mapply(get.nyt,x=as.character(rt$rt_code),y=rt$year)
-rt$nyt[rt$country=="United States"] <- NA
+# rt$nyt[rt$country=="United States"] <- NA
 summary(rt$nyt)
+
+##################################
+##### Amnesty Urgent Actions #####
+##################################
+
+#define function
+amnesty$countrycode <- as.character(amnesty$countrycode)
+amnesty$year <- as.integer(amnesty$year)
+
+get.uas <- function(x,y){
+  subset.data <- subset(amnesty,countrycode==x & year==y)
+  return(as.integer(nrow(subset.data)))
+}
+
+get.uas("USA",2000)
+rt$amnesty.uas <- mapply(get.uas,x=rt$rt_code,y=rt$year)
+summary(rt$amnesty.uas)
+
+# Assign NAs for all years < 1985
+rt$amnesty.uas[rt$year<1985] <- NA
 
 ##################
 ##### Region #####
@@ -372,47 +369,16 @@ rt$region[rt$country=="Serbia and Montenegro"] <- "EECA"
 rt$region[rt$country=="Serbia"] <- "EECA"
 rt$region[rt$country=="Yugoslavia"] <- "EECA"
 rt$region[rt$country=="Macedonia"] <- "EECA"
+rt$region[rt$country=="Kosovo"] <- "EECA"
+rt$region[rt$country=="Montenegro"] <- "EECA"
 
 rt$region <- as.factor(rt$region)
-
-
-##################
-##### Lag DV #####
-##################
-
-
-lag.dv <- function(row){
-  country <- rt$country[row]
-  year <- as.integer(rt$year[row])
-  prev.year <- year-1
-  dv <- rt$nyt[rt$year==prev.year & rt$country==country]
-  if (length(dv) == 0){
-    dv <- "NA"
-    return(dv)
-  }
-  return(as.integer(dv))
-}
-
-# testing
-lag.dv(1) # should NA
-rt$nyt[rt$year==2001 & rt$country=="Afghanistan"] #3215
-which(rt$year==2002 & rt$country=="Afghanistan") #3378
-typeof(lag.dv(3378))
-
-# applying
-
-seq <- 1:nrow(rt)
-rt$nyt.lagged <- lapply(seq,lag.dv)
-
-# more testing
-rt$nyt.lagged <- unlist(rt$nyt.lagged)
-rt$nyt.lagged[rt$country=="El Salvador" & rt$year==2001]
-rt$nyt.lagged <- as.character(rt$nyt.lagged)
-rt$nyt.lagged <- as.integer(rt$nyt.lagged)
 
 ############################
 ##### Amnesty Mentions #####
 ############################
+
+# TODO: WORK ON THIS
 
 # write function
 
@@ -429,16 +395,19 @@ rt$am.mentions <- mapply(am.mentions,date=rt$year,rt_code=as.character(rt$rt_cod
 ##### Muslim? #######
 #####################
 
+### TODO: WORK ON THIS
+
 get.muslim <- function(x,y){
   muslim <- murdie$muslim[murdie$ccode==x &murdie$year==y]
   return(muslim)
 } 
 
-get.muslim(402,1980)
+get.muslim(680,1980)
 rt$muslim <- mapply(get.muslim,rt$ccode,rt$year) # apply to my data
 rt$muslim[rt$muslim == "numeric(0)"] <- NA
 rt$muslim[rt$year > 2005] <- NA
 
+summary(rt$muslim)
 rt$muslim <- unlist(rt$muslim)
 
 for (i in unique(rt$ccode)){
@@ -447,12 +416,56 @@ for (i in unique(rt$ccode)){
 
 unique(rt$country[is.na(rt$muslim)])
 
+
+#make plm?
+
+test <- plm.data(rt, c("rt_code","year"))
+
+##################
+##### Lag DV #####
+##################
+
+
+lag.dv <- function(row){
+  country <- rt$country[row]
+  year <- as.integer(rt$year[row])
+  prev.year <- year-1
+  dv <- rt$nyt[rt$year==prev.year & rt$country==country][1]
+  if (length(dv) == 0){
+    dv <- NA
+    return(dv)
+  }
+  return(as.integer(dv))
+}
+
+# testing
+lag.dv(0) # should NA
+rt$nyt[rt$year==2001 & rt$country=="Afghanistan"] #3215, 12
+which(rt$year==2002 & rt$country=="Afghanistan") #3378
+typeof(lag.dv(3378))
+
+# applying
+
+seq <- 1:nrow(rt)
+rt$nyt.lagged <- lapply(seq,lag.dv)
+
+
+# more testing
+rt$nyt.lagged <- unlist(rt$nyt.lagged)
+rt$nyt.lagged[rt$country=="El Salvador" & rt$year==2001]
+rt$nyt.lagged <- as.character(rt$nyt.lagged)
+rt$nyt.lagged <- as.integer(rt$nyt.lagged)
+
+summary(rt$nyt.lagged)
+summary(rt$nyt)
+
 ###### Writing, reading, loving.
 
 names(rt)
 rt <- rt[,c(1,3,4,5,6,2,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33)]
 
-rt$pop.wdi <- as.character(rt$pop.wdi)
-rt$nyt.lagged <-  as.character(rt$nyt.lagged)
-rt$muslim <- as.character(rt$muslim)
+#rt$pop.wdi <- as.character(rt$pop.wdi)
+#rt$nyt.lagged <-  as.character(rt$nyt.lagged)
+#rt$muslim <- as.character(rt$muslim)
+
 write.csv(rt,"rt.csv")

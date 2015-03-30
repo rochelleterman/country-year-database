@@ -3,16 +3,21 @@
 rm(list=ls())
 
 setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
+library(plyr)
+library(ggplot2)
+library(reshape2)
+library("MASS")
+library("xtable")
 
+# load data
 rt <- read.csv("rt.csv")
+names(rt)
 rt$X <- NULL
 rt$X.1 <- NULL
 
 rt$pop.wdi <- as.integer(rt$pop.wdi)
 rt$nyt.lagged <- as.integer(rt$nyt.lagged)
 
-library("MASS")
-library("xtable")
 
 ############################################
 ##### Checking Region Counts to Varify #####
