@@ -25,15 +25,33 @@ rt <- subset(rt,!rt$country=="United States",)
 ##### Checking Region Counts to Varify #####
 #############################################
 
+### Counts
+
+# number of articles per region-year
 n.region.year <- ddply(.data=rt, .variables=.(year,region), .fun=summarize,"count"=sum(nyt))
 n.region.year
 
-ggplot(data=n.region.year, aes(x=year,y=count,group=region,color=region)) + geom_line()
-
+# write to csv
 casted <- dcast(data = n.region.year, formula = year ~ region, value.var = "count")
-
+casted
 write.csv(casted,"region_year_counts.csv")
 
+# plot
+ggplot(data=n.region.year, aes(x=year,y=count,group=region,color=region)) + geom_line()
+
+#### means
+
+# mean number of articles for obs. per region-year
+n.region.year.mean <- ddply(.data=rt, .variables=.(year,region), .fun=summarize,"mean"=mean(nyt))
+n.region.year.mean
+
+# plot
+ggplot(data=n.region.year.mean, aes(x=year,y=mean,group=region,color=region)) + geom_line()
+
+# write csv
+casted.mean <- dcast(data = n.region.year.mean, formula = year ~ region, value.var = "mean")
+casted.mean
+write.csv(casted.mean,"region_year_means.csv")
 
 #################################################
 ##### Pre and Post 2001 Regression Analysis #####

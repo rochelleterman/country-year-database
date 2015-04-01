@@ -79,9 +79,7 @@ summary(rt$polity)
 
 
 # delete some weird countries
-
-# Sudan-North
-rt <- rt[-which(rt$country=="Sudan-North"),]
+rt <- rt[-which(rt$country=="Sudan-North"),] # Sudan-North
 
 ###############
 #### Codes ####
@@ -159,7 +157,7 @@ rt$iso3c[index] <- as.character(unlist(lapply(index,get.code,code="iso3c")))
 ##### Re-Order Columns
 rt <- rt[,c(4,3,1,2,9,10,11,12,13,5,6,7,8)]
 
-write.csv(rt,"rt.csv")
+#write.csv(rt,"rt.csv")
 
 ###############
 #### CIRI ####
@@ -183,38 +181,19 @@ rt <- rt.merge
 WDIsearch(string="gdp per capita")
 wdi.gdp <- WDI(country = "all", indicator = c("NY.GDP.PCAP.CD"), start = 1980, end = 2012) #download data
 names(wdi.gdp) # GDP per capita (current US$)
-write.csv(wdi.gdp,file="Data/WDI/wdi-gdp.csv") #write csv for later use
-rt$gdp.pc.wdi <- NA # initialize variable
-
-# write function to get gdp in wdi.gdp based on iso2c (2letter county codes) + year in rt
-get.gdp.wdi <- function(x,y){
-  gdp <- wdi.gdp$NY.GDP.PCAP.CD[wdi.gdp$iso2c==x & wdi.gdp$year==y]
-  return(gdp[1])
-} 
-
-rt$gdp.pc.wdi <- mapply(get.gdp.wdi,rt$iso2c,rt$year) # apply to my data
-#rt$gdp.pc.wdi <- as.character(rt$gdp.pc.wdi)
-#rt$gdp.pc.wdi[rt$gdp.pc.wdi == "numeric(0)"] <- NA #get rid of that weird shit.
-#rt$gdp.pc.wdi <- as.factor(rt$gdp.pc.wdi)
+wdi.gdp$country <- NULL
+#write.csv(wdi.gdp,file="Data/WDI/wdi-gdp.csv") #write csv for later use
+rt <- merge(rt,wdi.gdp,by=c("year","iso2c"),all.x=TRUE,incomparables=NA)
+names(rt)[22] <- "gdp.pc.wdi"
 summary(rt$gdp.pc.wdi)
 
 # From UN Data
 
-rt$gdp.pc.un <- NA #initialize variable
+un.gdp$Item <- NULL
+un.gdp$Country.or.Area <- NULL
 names(un.gdp)
-
-# write function to get data
-get.gdp.un <- function(x,y){
-  gdp <- un.gdp$Value[un.gdp$Country.or.Area.Code==x & un.gdp$Year==y]
-  return(unlist(gdp))
-}
-
-# apply to my dataframe
-rt$gdp.pc.un <- mapply(get.gdp.un,rt$un,rt$year) # apply to my data
-rt$gdp.pc.un[rt$gdp.pc.un == "numeric(0)"] <- NA #get rid of that weird shit.
-rt$gdp.pc.un[grep("NA",rt$gdp.pc.un)] <- NA
-rt$gdp.pc.un <- as.double(rt$gdp.pc.un)
-summary(rt$gdp.pc.un)
+names(un.gdp) <- c("un","year","gdp.pc.un")
+rt <- merge(rt,un.gdp,by=c("year","un"),all.x=TRUE,incomparables=NA)
 
 
 ######################
@@ -226,19 +205,13 @@ summary(rt$gdp.pc.un)
 WDIsearch(string="SP.POP.TOTL")
 wdi.pop <- WDI(country = "all", indicator = c("SP.POP.TOTL"), start = 1980, end = 2013) #download data
 names(wdi.pop) # GDP per capita (current US$)
-write.csv(wdi.pop,file="Data/WDI/wdi-pop.csv") #write csv for later use
-rt$pop.wdi <- NA # initialize variable
+#write.csv(wdi.pop,file="Data/WDI/wdi-pop.csv") #write csv for later use
 
-# write function to get gdp in wdi.gdp based on country + year in rt
-get.pop.wdi <- function(x,y){
-  pop <- wdi.pop$SP.POP.TOTL[wdi.pop$iso2c==x & wdi.pop$year==y]
-  return(pop)
-}
+# subset
+wdi.pop$country <- NULL
+rt <- merge(rt,wdi.pop,by=c("year","iso2c"),all.x=TRUE,incomparables=NA)
+names(rt)[24] <- "pop.wdi"
 
-# apply to data
-rt$pop.wdi <- mapply(get.pop.wdi,rt$iso2c,rt$year) # apply to my data
-rt$pop.wdi[rt$pop.wdi == "numeric(0)"] <- NA #get rid of that weird shit.
-rt$pop.wdi <- as.double(rt$pop.wdi)
 summary(rt$pop.wdi)
 
 ###############
@@ -267,6 +240,7 @@ rt <- rt.merge
 battle.sub <- subset(battle,year>1979 & year<2013,select=c("year","bdeadbes","location"))
 names(battle.sub) <- c("year","bdeadbest","country")
 summary(battle.sub$country) # note there are some multiple countries here that I don't know what to do with - return to it later.
+names(rt)
 
 rt.merge <-merge(rt,battle.sub,by=c("country","year"), all.x = TRUE)
 x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
@@ -396,21 +370,20 @@ rt$am.mentions <- mapply(am.mentions,date=rt$year,rt_code=as.character(rt$rt_cod
 
 ### TODO: WORK ON THIS
 
-get.muslim <- function(x,y){
-  muslim <- murdie$muslim[murdie$ccode==x &murdie$year==y]
-  return(muslim)
-} 
-
-get.muslim(680,1980)
-rt$muslim <- mapply(get.muslim,rt$ccode,rt$year) # apply to my data
-rt$muslim[rt$muslim == "numeric(0)"] <- NA
+murdie.muslim <- subset(murdie,select=c("ccode","year","muslim"))
+rt <- merge(rt,murdie.muslim,by=c("year","ccode"),all.x=TRUE)
 rt$muslim[rt$year > 2005] <- NA
 
 summary(rt$muslim)
 rt$muslim <- unlist(rt$muslim)
 
 for (i in unique(rt$ccode)){
-  rt$muslim[rt$ccode == i & rt$ year > 2005] <- rt$muslim[rt$ccode == i & rt$year == 2005 ]
+  in2005 <- rt$muslim[rt$ccode == i & rt$year == 2005]
+  if(length(in2005)>0){
+    rt$muslim[rt$ccode == i & rt$ year > 2005] <- rt$muslim[rt$ccode == i & rt$year == 2005 ]
+  } else{
+    rt$muslim[rt$ccode == i & rt$ year > 2005] <- NA
+  }
 }
 
 unique(rt$country[is.na(rt$muslim)])
@@ -418,7 +391,6 @@ unique(rt$country[is.na(rt$muslim)])
 ##################
 ##### Lag DV #####
 ##################
-
 
 lag.dv <- function(row){
   country <- rt$country[row]
