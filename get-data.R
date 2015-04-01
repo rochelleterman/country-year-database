@@ -436,3 +436,7 @@ names(rt)
 #rt$muslim <- as.character(rt$muslim)
 
 write.csv(rt,"rt.csv")
+
+rt.no.us <- subset(rt,!rt$country=="United States",)
+write.csv(rt.no.us,"rt.no.us.csv")
+

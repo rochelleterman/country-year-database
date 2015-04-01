@@ -64,24 +64,26 @@ names(rt)
 set.seed(1234)
 
 # PLM
-test <- plm.data(pre.2001, c("ccode","year"))
-plm.1 <- plm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)),data = test,model = "within")
-summary(plm.1)
-fixef(plm.1)
-pFtest(plm.1, lm.1) 
+pre.2001.plm <- plm.data(pre.2001, c("ccode","year"))
+plm.pre <- plm(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(gdp.pc.wdi)+pop.wdi+statedept+milper+cinc+domestic9+amnesty.uas,data = test,model = "within")
+summary(plm.pre)
 
 # LM
-lm.1<-lm(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+(relevel(region,4)), data = pre.2001, na.action=na.omit) 
-summary(lm.1)
+glm.pre<-glm(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(gdp.pc.wdi)+pop.wdi+statedept+milper+cinc+domestic9+amnesty.uas,data = test, na.action=na.omit) 
+summary(lm.pre)
+fixef(plm.pre)
+pFtest(plm.pre, lm.pre) 
 
 # GLM
-glm.2<-glm.nb(nyt ~ nyt.lagged+polity+amnesty.uas+gdp.pc.wdi+pop.wdi+cinc+domestic9+physint+speech+muslim+(relevel(region,5)), data = post.2001,na.action=na.omit) 
-summary(glm.2)
+glm.pre<-glm.nb(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(gdp.pc.wdi)+pop.wdi+statedept+milper+cinc+domestic9+amnesty.uas+(relevel(region,4)), data = pre.2001, na.action=na.omit)
+summary(glm.pre)
 
-glm.3 <- glm.nb(nyt ~ polity+democ+autoc+physint+speech+new_empinx+wecon+wopol+wosoc+elecsd+gdp.pc.wdi+pop.wdi+statedept+milper+cinc+bdeadbest+domestic9+amnesty.uas+(relevel(region,5)), data = post.2001, na.action=na.omit) 
-summary(glm.3)
+glm.post <- glm.nb(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(gdp.pc.wdi)+pop.wdi+statedept+milper+cinc+domestic9+amnesty.uas+(relevel(region,5)), data = post.2001, na.action=na.omit) 
+summary(glm.post)
 
 #### create xtable
+
+
 
 glm.2.table <- xtable(summary(glm.2),caption="Determinants of Media Coverage, 2001–2010", align="ccccc")
 print(glm.2.table)
