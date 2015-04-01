@@ -41,7 +41,7 @@ rm(list=ls())
 setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
 
 #rt <- read.csv("rt.csv")
-#rt$X.1 <- NULL
+#rt$X <- NULL
 
 ###### Load other people's data to get started
 
@@ -301,6 +301,8 @@ nyt.old <- rt$nyt
 rt$nyt <- mapply(get.nyt,x=as.character(rt$rt_code),y=rt$year)
 # rt$nyt[rt$country=="United States"] <- NA
 summary(rt$nyt)
+
+rt$nyt[rt$year>2010] <- NA
 
 ##################################
 ##### Amnesty Urgent Actions #####
