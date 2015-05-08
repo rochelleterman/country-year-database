@@ -68,11 +68,12 @@ pre.2001.plm <- plm.data(pre.2001, c("ccode","year"))
 plm.pre <- plm(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(gdp.pc.wdi)+pop.wdi+statedept+milper+cinc+domestic9+amnesty.uas,data = test,model = "within")
 summary(plm.pre)
 
-# LM
+# GLM v. PLM
 glm.pre<-glm(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(gdp.pc.wdi)+pop.wdi+statedept+milper+cinc+domestic9+amnesty.uas,data = test, na.action=na.omit) 
 summary(lm.pre)
 fixef(plm.pre)
 pFtest(plm.pre, lm.pre) 
+summary(rt$rights)
 
 # GLM
 glm.pre<-glm.nb(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(gdp.pc.wdi)+pop.wdi+statedept+milper+cinc+domestic9+amnesty.uas+(relevel(region,4)), data = pre.2001, na.action=na.omit)
@@ -82,8 +83,6 @@ glm.post <- glm.nb(nyt ~ nyt.lagged+polity+autoc+physint+speech+new_empinx+log(g
 summary(glm.post)
 
 #### create xtable
-
-
 
 glm.2.table <- xtable(summary(glm.2),caption="Determinants of Media Coverage, 2001–2010", align="ccccc")
 print(glm.2.table)

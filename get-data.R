@@ -29,7 +29,7 @@
 ### 28. cinc: Composite Index of Military Capabilities (Correlates of War, National Military Capabilities, cinc)
 ### 29. bdeadbest: Number of battle deaths. (Bethany Lacina & Nils Petter Gleditsch, 2005. ‘Monitoring Trends in Global Combat: A New Dataset of Battle Deaths’, European Journal of Population 21(2–3): 145–166.)
 ### 30. INGO_uia: Number of NGO ties (Hafner-Burton and Tsutsui’s (2005))
-### 31. domestic9: Domestic Conflict / Stability Index (Cross National Time Series Data, Banks (2012))
+### 31. : Domestic Conflict / Stability Index (Cross National Time Series Data, Banks (2012))
 ### 32. amnesty.uas: Amnesty Internatioanl UA's
 ### 33. nyt: NYT human rights articles
 ### 34. Region
@@ -42,6 +42,7 @@ setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Rep
 
 #rt <- read.csv("rt.csv")
 #rt$X <- NULL
+#names(rt)
 
 ###### Load other people's data to get started
 
@@ -70,7 +71,7 @@ countries <- read.csv("country_codes.csv")
 #############################
 
 names(polity)
-rt.polity <- subset(polity, year>1979 & year < 2013,select=c(ccode,scode,country,year,polity,polity2,democ,autoc))
+rt.polity <- subset(polity, year>1979 & year < 2014,select=c(ccode,scode,country,year,polity,polity2,democ,autoc))
 rt <- rt.polity
 rt$polity[rt$polity < -10] <- NA
 rt$polity2[rt$polity2 < -10] <- NA
@@ -94,7 +95,7 @@ get.code <- function(index,code){
   return(problem.countries[problem.countries$country==country,pcindex])
 }
 
-as.character(get.code(4497,"worldbank"))
+as.character(get.code(4497,"country"))
 
 #### UN ####
 ############
@@ -164,13 +165,20 @@ rt <- rt[,c(4,3,1,2,9,10,11,12,13,5,6,7,8)]
 ###############
 
 names(ciri)
-ciri.subset <- subset(ciri, YEAR > 1979 & YEAR < 2013, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
+ciri.subset <- subset(ciri, YEAR > 1979 & YEAR < 2014, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
 names(ciri.subset) <- c("year","ccode","unreg","physint","speech","new_empinx","wecon","wopol","wosoc","elecsd")
 rt.merge <- merge(rt,ciri.subset,by=c("year","ccode"),all.x=TRUE,incomparables=NA)
 x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
 x <- which(duplicated(x))
 rt.merge <- rt.merge[-x,]
 rt <- rt.merge
+
+rt$wopol[rt$wopol<0] <-NA
+rt$speech[rt$speech<0] <- NA
+rt$wecon[rt$wecon<0] <-NA
+rt$wosoc[rt$wosoc<0] <-NA
+rt$elecsd[rt$elecsd<0] <-NA
+
 
 ###############
 ##### GDP #####
@@ -366,18 +374,17 @@ am.mentions <- function(date,rt_code){
 am.mentions(2001,"AFG") # 25
 rt$am.mentions <- mapply(am.mentions,date=rt$year,rt_code=as.character(rt$rt_code))
 
-#####################
-##### Muslim? #######
-#####################
+############################
+##### Murdie - Media Exp + Muslim #######
+############################
 
-### TODO: WORK ON THIS
-
-murdie.muslim <- subset(murdie,select=c("ccode","year","muslim"))
-rt <- merge(rt,murdie.muslim,by=c("year","ccode"),all.x=TRUE)
-rt$muslim[rt$year > 2005] <- NA
-
+murdie.subset<- subset(murdie,select=c("ccode","year","lnreportcount","muslim"))
+rt <- merge(rt,murdie.subset,by=c("year","ccode"),all.x=TRUE)
+summary(murdie$lnreportcount)
 summary(rt$muslim)
 rt$muslim <- unlist(rt$muslim)
+
+# apply all after 2005 to 2005 values
 
 for (i in unique(rt$ccode)){
   in2005 <- rt$muslim[rt$ccode == i & rt$year == 2005]
@@ -389,6 +396,7 @@ for (i in unique(rt$ccode)){
 }
 
 unique(rt$country[is.na(rt$muslim)])
+rt$muslim[rt$year==2006 & rt$country=="Afghanistan"]
 
 ##################
 ##### Lag DV #####
@@ -435,6 +443,7 @@ names(rt)
 #rt$nyt.lagged <-  as.character(rt$nyt.lagged)
 #rt$muslim <- as.character(rt$muslim)
 
+rt <- rt.blah
 write.csv(rt,"rt.csv")
 
 rt.no.us <- subset(rt,!rt$country=="United States",)
