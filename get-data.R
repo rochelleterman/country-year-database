@@ -1,5 +1,5 @@
 ### This R code builds my brand new spanking database with the following variables:
-### 1. year: 1980-2012
+### 1. year: 1980-2013
 ### 2. country: Country name (countrycode package)
 ### 3. ccode: COW Numeric Country Code (countrycode package)
 ### 4. scode: COW Alpha Country Code (countrycode package)
@@ -38,7 +38,7 @@ library("foreign")
 library("WDI")
 library("countrycode")
 rm(list=ls())
-setwd("/Users/rterman/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
+setwd("~/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
 
 #rt <- read.csv("rt.csv")
 #rt$X <- NULL
@@ -57,7 +57,7 @@ un.gdp <- read.csv("Data/UNdata/UNdata_gdp_per_capita.csv") # read data
 cinc <- read.csv("Data/COW/NMC_v4_0.csv") # only to 2007
 battle <- read.csv("Data/BattleDeaths/PRIO_bd3.0.csv")
 cnts <- read.csv("Data/CNTS/CNTSDATA.csv")
-pts <- load("/Users/rterman/Dropbox/berkeley/Dissertation/Data and Analyais/Git Repos/country-year-database/Data/PTS/PTS2012.RData") # load data
+pts <- load("Data/PTS/PTS2012.RData") # load data
 amnesty <- read.csv("Data/Amnesty/total_amnesty2.csv")
 wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
 wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
@@ -71,7 +71,7 @@ countries <- read.csv("country_codes.csv")
 #############################
 
 names(polity)
-rt.polity <- subset(polity, year>1979 & year < 2014,select=c(ccode,scode,country,year,polity,polity2,democ,autoc))
+rt.polity <- subset(polity, year>1978 & year < 2014,select=c(ccode,scode,country,year,polity,polity2,democ,autoc))
 rt <- rt.polity
 rt$polity[rt$polity < -10] <- NA
 rt$polity2[rt$polity2 < -10] <- NA
@@ -165,9 +165,9 @@ rt <- rt[,c(4,3,1,2,9,10,11,12,13,5,6,7,8)]
 ###############
 
 names(ciri)
-ciri.subset <- subset(ciri, YEAR > 1979 & YEAR < 2014, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
+ciri.subset <- subset(ciri, YEAR > 1978 & YEAR < 2014, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
 names(ciri.subset) <- c("year","ccode","unreg","physint","speech","new_empinx","wecon","wopol","wosoc","elecsd")
-rt.merge <- merge(rt,ciri.subset,by=c("year","ccode"),all.x=TRUE,incomparables=NA)
+rt.merge <- merge(rt,ciri.subset,by=c("year","ccode"),all.x=TRUE)
 x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
 x <- which(duplicated(x))
 rt.merge <- rt.merge[-x,]
@@ -187,11 +187,11 @@ rt$elecsd[rt$elecsd<0] <-NA
 # From World Bank Development Indicators
 
 WDIsearch(string="gdp per capita")
-wdi.gdp <- WDI(country = "all", indicator = c("NY.GDP.PCAP.CD"), start = 1980, end = 2012) #download data
+wdi.gdp <- WDI(country = "all", indicator = c("NY.GDP.PCAP.CD"), start = 1979, end = 2014) #download data
 names(wdi.gdp) # GDP per capita (current US$)
 wdi.gdp$country <- NULL
 #write.csv(wdi.gdp,file="Data/WDI/wdi-gdp.csv") #write csv for later use
-rt <- merge(rt,wdi.gdp,by=c("year","iso2c"),all.x=TRUE,incomparables=NA)
+rt <- merge(rt,wdi.gdp,by=c("year","iso2c"),all.x=TRUE)
 names(rt)[22] <- "gdp.pc.wdi"
 summary(rt$gdp.pc.wdi)
 
@@ -201,7 +201,7 @@ un.gdp$Item <- NULL
 un.gdp$Country.or.Area <- NULL
 names(un.gdp)
 names(un.gdp) <- c("un","year","gdp.pc.un")
-rt <- merge(rt,un.gdp,by=c("year","un"),all.x=TRUE,incomparables=NA)
+rt <- merge(rt,un.gdp,by=c("year","un"),all.x=TRUE)
 
 
 ######################
@@ -211,13 +211,13 @@ rt <- merge(rt,un.gdp,by=c("year","un"),all.x=TRUE,incomparables=NA)
 # From World Bank Development Indicators
 
 WDIsearch(string="SP.POP.TOTL")
-wdi.pop <- WDI(country = "all", indicator = c("SP.POP.TOTL"), start = 1980, end = 2013) #download data
+wdi.pop <- WDI(country = "all", indicator = c("SP.POP.TOTL"), start = 1979, end = 2014) #download data
 names(wdi.pop) # GDP per capita (current US$)
 #write.csv(wdi.pop,file="Data/WDI/wdi-pop.csv") #write csv for later use
 
 # subset
 wdi.pop$country <- NULL
-rt <- merge(rt,wdi.pop,by=c("year","iso2c"),all.x=TRUE,incomparables=NA)
+rt <- merge(rt,wdi.pop,by=c("year","iso2c"),all.x=TRUE)
 names(rt)[24] <- "pop.wdi"
 
 summary(rt$pop.wdi)
@@ -227,7 +227,7 @@ summary(rt$pop.wdi)
 ###############
 
 names(PTS)
-pts <- subset(PTS,Year>1979 & Year<2013, select=c("COW","Year","Amnesty","StateDept"))
+pts <- subset(PTS,Year>1978 & Year<2013, select=c("COW","Year","Amnesty","StateDept"))
 names(pts) <- c("ccode","year","amnesty","statedept")
 rt.merge <- merge(rt,pts,by=c("ccode","year"), all.x = TRUE)
 rt <- rt.merge
@@ -236,7 +236,7 @@ rt <- rt.merge
 #### National Military Capabilities #####
 #########################################
 
-cinc.sub <- subset(cinc,year>1979 & year<2013,select=c("ccode","year","milper","cinc"))
+cinc.sub <- subset(cinc,year>1978 & year<2014,select=c("ccode","year","milper","cinc"))
 rt.merge <- merge(rt,cinc.sub,by=c("ccode","year"), all.x = TRUE)
 rt.merge$milper[rt.merge$milper=="-9"] <- NA # replace -9 with NA
 rt <- rt.merge
@@ -245,7 +245,7 @@ rt <- rt.merge
 #### Battle Deaths #####
 ########################
 
-battle.sub <- subset(battle,year>1979 & year<2013,select=c("year","bdeadbes","location"))
+battle.sub <- subset(battle,year>1978 & year<2014,select=c("year","bdeadbes","location"))
 names(battle.sub) <- c("year","bdeadbest","country")
 summary(battle.sub$country) # note there are some multiple countries here that I don't know what to do with - return to it later.
 names(rt)
@@ -274,7 +274,7 @@ unique(rt$country[is.na(rt$INGO_uia)])
 #####################################
 
 names(cnts)
-cnts.sub <- subset(cnts,year>1979 & year<2013,select=c("year","Wbcode","domestic9"))
+cnts.sub <- subset(cnts,year>1978 & year<2014,select=c("year","Wbcode","domestic9"))
 names(cnts.sub) <- c("year","worldbank","domestic9")
 rt.merge <- merge(rt,cnts.sub,by=c("year","worldbank"),all.x=TRUE)
 x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
@@ -397,43 +397,6 @@ for (i in unique(rt$ccode)){
 
 unique(rt$country[is.na(rt$muslim)])
 rt$muslim[rt$year==2006 & rt$country=="Afghanistan"]
-
-##################
-##### Lag DV #####
-##################
-
-lag.dv <- function(row){
-  country <- rt$country[row]
-  year <- as.integer(rt$year[row])
-  prev.year <- year-1
-  dv <- rt$nyt[rt$year==prev.year & rt$country==country][1]
-  if (length(dv) == 0){
-    dv <- NA
-    return(dv)
-  }
-  return(as.integer(dv))
-}
-
-# testing
-lag.dv(0) # should NA
-rt$nyt[rt$year==2001 & rt$country=="Afghanistan"] #3215, 12
-which(rt$year==2002 & rt$country=="Afghanistan") #3378
-typeof(lag.dv(3378))
-
-# applying
-
-seq <- 1:nrow(rt)
-rt$nyt.lagged <- lapply(seq,lag.dv)
-
-
-# more testing
-rt$nyt.lagged <- unlist(rt$nyt.lagged)
-rt$nyt.lagged[rt$country=="El Salvador" & rt$year==2001]
-rt$nyt.lagged <- as.character(rt$nyt.lagged)
-rt$nyt.lagged <- as.integer(rt$nyt.lagged)
-
-summary(rt$nyt.lagged)
-summary(rt$nyt)
 
 ###### Writing, reading, loving.
 
