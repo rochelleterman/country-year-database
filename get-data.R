@@ -78,6 +78,12 @@ rt$polity2[rt$polity2 < -10] <- NA
 
 summary(rt$polity)
 
+# add 2014
+rt.2014 <- rt[rt$year==2013,]
+rt.2014$year <- 2014
+rt.2014[,5:8] <- NA
+rt <- rbind(rt, rt.2014)
+rt <- arrange(rt,country,year)
 
 # delete some weird countries
 rt <- rt[-which(rt$country=="Sudan-North"),] # Sudan-North
@@ -165,7 +171,7 @@ rt <- rt[,c(4,3,1,2,9,10,11,12,13,5,6,7,8)]
 ###############
 
 names(ciri)
-ciri.subset <- subset(ciri, YEAR > 1978 & YEAR < 2014, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
+ciri.subset <- subset(ciri, YEAR > 1978 & YEAR < 2015, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
 names(ciri.subset) <- c("year","ccode","unreg","physint","speech","new_empinx","wecon","wopol","wosoc","elecsd")
 rt.merge <- merge(rt,ciri.subset,by=c("year","ccode"),all.x=TRUE)
 x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
@@ -236,7 +242,7 @@ rt <- rt.merge
 #### National Military Capabilities #####
 #########################################
 
-cinc.sub <- subset(cinc,year>1978 & year<2014,select=c("ccode","year","milper","cinc"))
+cinc.sub <- subset(cinc,year>1978 & year<2015,select=c("ccode","year","milper","cinc"))
 rt.merge <- merge(rt,cinc.sub,by=c("ccode","year"), all.x = TRUE)
 rt.merge$milper[rt.merge$milper=="-9"] <- NA # replace -9 with NA
 rt <- rt.merge
@@ -245,7 +251,7 @@ rt <- rt.merge
 #### Battle Deaths #####
 ########################
 
-battle.sub <- subset(battle,year>1978 & year<2014,select=c("year","bdeadbes","location"))
+battle.sub <- subset(battle,year>1978 & year<2015,select=c("year","bdeadbes","location"))
 names(battle.sub) <- c("year","bdeadbest","country")
 summary(battle.sub$country) # note there are some multiple countries here that I don't know what to do with - return to it later.
 names(rt)
@@ -274,7 +280,7 @@ unique(rt$country[is.na(rt$INGO_uia)])
 #####################################
 
 names(cnts)
-cnts.sub <- subset(cnts,year>1978 & year<2014,select=c("year","Wbcode","domestic9"))
+cnts.sub <- subset(cnts,year>1978 & year<2015,select=c("year","Wbcode","domestic9"))
 names(cnts.sub) <- c("year","worldbank","domestic9")
 rt.merge <- merge(rt,cnts.sub,by=c("year","worldbank"),all.x=TRUE)
 x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
@@ -409,6 +415,6 @@ names(rt)
 rt <- rt.blah
 write.csv(rt,"rt.csv")
 
-rt.no.us <- subset(rt,!rt$country=="United States",)
+rt.no.us <- subset(rt,!rt$country=="United States")
 write.csv(rt.no.us,"rt.no.us.csv")
 
