@@ -29,10 +29,10 @@
 ### 28. cinc: Composite Index of Military Capabilities (Correlates of War, National Military Capabilities, cinc)
 ### 29. bdeadbest: Number of battle deaths. (Bethany Lacina & Nils Petter Gleditsch, 2005. ‘Monitoring Trends in Global Combat: A New Dataset of Battle Deaths’, European Journal of Population 21(2–3): 145–166.)
 ### 30. INGO_uia: Number of NGO ties (Hafner-Burton and Tsutsui’s (2005))
-### 31. : Domestic Conflict / Stability Index (Cross National Time Series Data, Banks (2012))
-### 32. amnesty.uas: Amnesty Internatioanl UA's
-### 33. nyt: NYT human rights articles
-### 34. Region
+### 31. domestic9: Domestic Conflict / Stability Index (Cross National Time Series Data, Banks (2012))
+### 32. amnesty.uas: Number of Amnesty Internatioanl UA's (Terman)
+### 33. nyt: Number of NYT human rights articles (Terman)
+### 34. Region (based on Hafner-Burton and Ron's (2012) categories)
 
 library("foreign")
 library("WDI")
