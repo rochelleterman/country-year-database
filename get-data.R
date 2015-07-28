@@ -363,46 +363,15 @@ rt$region[rt$country=="Montenegro"] <- "EECA"
 
 rt$region <- as.factor(rt$region)
 
-############################
-##### Amnesty Mentions #####
-############################
-
-# TODO: WORK ON THIS
-
-# write function
-
-subset()
-
-am.mentions <- function(date,rt_code){
-  x <- sum(am[am$year==date,rt_code], na.rm=TRUE)
-  return(x)
-}
-am.mentions(2001,"AFG") # 25
-rt$am.mentions <- mapply(am.mentions,date=rt$year,rt_code=as.character(rt$rt_code))
-
-############################
+#########################################
 ##### Murdie - Media Exp + Muslim #######
-############################
+#########################################
 
 murdie.subset<- subset(murdie,select=c("ccode","year","lnreportcount","muslim"))
 rt <- merge(rt,murdie.subset,by=c("year","ccode"),all.x=TRUE)
 summary(murdie$lnreportcount)
 summary(rt$muslim)
 rt$muslim <- unlist(rt$muslim)
-
-# apply all after 2005 to 2005 values
-
-for (i in unique(rt$ccode)){
-  in2005 <- rt$muslim[rt$ccode == i & rt$year == 2005]
-  if(length(in2005)>0){
-    rt$muslim[rt$ccode == i & rt$ year > 2005] <- rt$muslim[rt$ccode == i & rt$year == 2005 ]
-  } else{
-    rt$muslim[rt$ccode == i & rt$ year > 2005] <- NA
-  }
-}
-
-unique(rt$country[is.na(rt$muslim)])
-rt$muslim[rt$year==2006 & rt$country=="Afghanistan"]
 
 ###### Writing, reading, loving.
 
@@ -412,7 +381,6 @@ names(rt)
 #rt$nyt.lagged <-  as.character(rt$nyt.lagged)
 #rt$muslim <- as.character(rt$muslim)
 
-rt <- rt.blah
 write.csv(rt,"rt.csv")
 
 rt.no.us <- subset(rt,!rt$country=="United States")
