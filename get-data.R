@@ -40,10 +40,6 @@ library("countrycode")
 rm(list=ls())
 setwd("~/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
 
-#rt <- read.csv("rt.csv")
-#rt$X <- NULL
-#names(rt)
-
 ###### Load other people's data to get started
 
 meernick <- read.csv ("Data/Meernick/Merge\ of\ JCR\ data\ for\ AIUA\ Paper\ and\ COW\ State\ list.csv") # 1997 - 2007 / 2009
@@ -65,6 +61,7 @@ nyt <- read.csv("Data/NYT_violations/nyt.violations.csv")
 am <- read.csv("Data/Amnesty/amnesty_processed.csv")
 problem.countries <- read.csv("problematic_countries.csv")
 countries <- read.csv("country_codes.csv")
+muslim <- read.csv("Data/muslim-pop.csv")
 
 #############################
 ##### Start with Polity #####
@@ -121,7 +118,6 @@ unique(rt$country[is.na(rt$un)])
 ############
 
 ### WB 3L Code
-
 rt$worldbank <- countrycode(rt$un,"un","wb") #worldbank
 unique(rt$country[is.na(rt$worldbank)])
 
@@ -130,14 +126,12 @@ index <- which(is.na(rt$worldbank))
 rt$worldbank[index] <- as.character(unlist(lapply(index,get.code,code="worldbank")))
 
 ### WB Region
-
 rt$wbregion <- countrycode(rt$worldbank,"wb","region") #worldbank region
 unique(rt$wbregion)
 
 ## Missing Codes
 index <- which(is.na(rt$wbregion))
 rt$wbregion[index] <- as.character(unlist(lapply(index,get.code,code="wbregion")))
-
 unique(rt$country[is.na(rt$wbregion)])
 
 #### iso2c ####
@@ -191,7 +185,6 @@ rt$elecsd[rt$elecsd<0] <-NA
 ###############
 
 # From World Bank Development Indicators
-
 WDIsearch(string="gdp per capita")
 wdi.gdp <- WDI(country = "all", indicator = c("NY.GDP.PCAP.CD"), start = 1979, end = 2014) #download data
 names(wdi.gdp) # GDP per capita (current US$)
@@ -202,20 +195,17 @@ names(rt)[22] <- "gdp.pc.wdi"
 summary(rt$gdp.pc.wdi)
 
 # From UN Data
-
 un.gdp$Item <- NULL
 un.gdp$Country.or.Area <- NULL
 names(un.gdp)
 names(un.gdp) <- c("un","year","gdp.pc.un")
 rt <- merge(rt,un.gdp,by=c("year","un"),all.x=TRUE)
 
-
 ######################
 ##### Population #####
 ######################
 
 # From World Bank Development Indicators
-
 WDIsearch(string="SP.POP.TOTL")
 wdi.pop <- WDI(country = "all", indicator = c("SP.POP.TOTL"), start = 1979, end = 2014) #download data
 names(wdi.pop) # GDP per capita (current US$)
@@ -291,13 +281,11 @@ rt <- rt.merge
 
 unique(rt$country[is.na(rt$domestic9)])
 
-
 ##############################
 ##### NYT Media Coverage #####
 ##############################
 
 ## make new code column
-
 rt$rt_code <- rt$iso3c
 rt$rt_code <- as.character(rt$rt_code)
 rt$rt_code[rt$country=="Macedonia"] <- "MAC"
@@ -363,19 +351,55 @@ rt$region[rt$country=="Montenegro"] <- "EECA"
 
 rt$region <- as.factor(rt$region)
 
-#########################################
-##### Murdie - Media Exp + Muslim #######
-#########################################
+#################################
+##### Murdie - Media Exp  #######
+#################################
 
-murdie.subset<- subset(murdie,select=c("ccode","year","lnreportcount","muslim"))
+murdie.subset<- subset(murdie,select=c("ccode","year","lnreportcount"))
 rt <- merge(rt,murdie.subset,by=c("year","ccode"),all.x=TRUE)
 summary(murdie$lnreportcount)
-summary(rt$muslim)
-rt$muslim <- unlist(rt$muslim)
 
-###### Writing, reading, loving.
+####################
+##### Muslim #######
+####################
+muslim.org <- muslim
+muslim <- muslim.org
 
-names(rt)
+muslim$ccode<- countrycode(muslim$Country, "country.name", "cown")
+muslim <- muslim[,c(3,5,8)]
+names(muslim) <- c("1990", "2010","ccode")
+muslim <- melt(muslim, id.var = "ccode", variable.name = "year")
+
+rt.sub <- rt[,c("ccode","year")]
+row.names(rt.sub) <- 1:nrow(rt.sub)
+muslim <- merge(rt.sub, muslim, all.x = T)
+x<- data.frame(cbind(muslim$year,muslim$ccode))
+x <- which(duplicated(x))
+x
+muslim <- muslim[-x,]
+
+muslim <- arrange(muslim, ccode)
+
+impute <- function(var){
+  DT <- data.table(
+    id    = muslim$ccode,
+    date  = as.numeric(as.character(muslim$year)),
+    value = var
+  )
+  setna(DT, along_with = date, by = id, roll = "nearest")
+  return(DT$value)
+}
+
+muslim$value2<- impute(muslim$value)
+muslim.x <- muslim[,c("ccode","year","value2")]
+names(muslim.x) <- c("ccode","year","muslim")
+rt.merge <- merge(rt, muslim.x, all.x = T)
+
+# test
+rt.merge$muslim[rt.merge$country=="United Kingdom"]
+names(rt.merge)
+
+rt <- rt.merge
 
 #rt$pop.wdi <- as.character(rt$pop.wdi)
 #rt$nyt.lagged <-  as.character(rt$nyt.lagged)
