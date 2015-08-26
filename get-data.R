@@ -405,8 +405,8 @@ rt <- rt.merge
 #rt$nyt.lagged <-  as.character(rt$nyt.lagged)
 #rt$muslim <- as.character(rt$muslim)
 
-write.csv(rt,"rt.csv")
+write.csv(rt,"rt.csv", row.names = F)
 
 rt.no.us <- subset(rt,!rt$country=="United States")
-write.csv(rt.no.us,"rt.no.us.csv")
+write.csv(rt.no.us,"rt.no.us.csv", row.names = F)
 
