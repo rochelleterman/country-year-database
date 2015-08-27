@@ -79,23 +79,21 @@ rt <- arrange(rt, ccode, year)
 
 codes <- countrycode_data
 
-#### UN ####
-############
-
-rt$un <- countrycode(rt$ccode,"cown","un") #UN
-
-#### Missing UN codes
-unique(rt$country[is.na(rt$un)])
-# index <- which(is.na(rt$un))
-# rt$un[index] <- unlist(lapply(index,get.code,code="un"))
-# Sudan post 2011
-# rt$un[rt$country=="Sudan" & rt$year >2010] <- 29
-
 #### WB ####
 ############
 
-rt$worldbank <- countrycode(rt$un,"un","wb") #worldbank
-unique(rt$country[is.na(rt$worldbank)])
+rt$worldbank <- countrycode(rt$ccode,"cown","wb") #worldbank
+rt$worldbank[rt$country=="German Federal Republic"] <- "DEU"
+rt$worldbank[rt$country=="German Democratic Republic"] <- "DDR"
+rt$worldbank[rt$country=="Czechoslovakia"] <- "CSK"
+rt$worldbank[rt$country=="Yemen Arab Republic"] <- "YEM"
+rt$worldbank[rt$country=="Yemen People's Republic"] <- "YDR"
+
+#### UN ####
+############
+
+rt$un <- countrycode(rt$worldbank,"wb","un") #UN
+unique(rt$country[is.na(rt$un)])
 
 #### iso2c ####
 ###############
@@ -103,11 +101,19 @@ unique(rt$country[is.na(rt$worldbank)])
 rt$iso2c <- countrycode(rt$worldbank,"wb","iso2c") #iso2c
 unique(rt$country[is.na(rt$iso2c)])
 
+rt$iso2c[rt$country=="German Democratic Republic"] <- "DD"
+rt$iso2c[rt$country=="Czechoslovakia"] <- "CS"
+rt$iso2c[rt$country=="Yemen People's Republic"] <- "YD"
+
 #### iso3c ####
 ###############
 
 rt$iso3c <- countrycode(rt$iso2c,"iso2c","iso3c") #iso2
 unique(rt$country[is.na(rt$iso3c)])
+
+rt$iso3c[rt$country=="German Democratic Republic"] <- "DDR"
+rt$iso3c[rt$country=="Czechoslovakia"] <- "CSK"
+rt$iso3c[rt$country=="Yemen People's Republic"] <- "YMD"
 
 ##### Re-Order Columns
 rt <- rt[,c(1,2,3,5,6,7,8,4)]
@@ -128,7 +134,6 @@ summary(rt$polity)
 #### CIRI ####
 ###############
 
-names(ciri)
 ciri.subset <- subset(ciri, YEAR > 1978 & YEAR < 2015, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
 names(ciri.subset) <- c("year","ccode","unreg","physint","speech","new_empinx","wecon","wopol","wosoc","elecsd")
 rt.merge <- merge(rt,ciri.subset,by=c("year","ccode"),all.x=TRUE)
@@ -305,14 +310,11 @@ for (i in 1:n){
 unique(rt$country[is.na(rt$region)])
 
 rt$region[rt$country=="Czechoslovakia"] <- "EECA"
-rt$region[rt$country=="Yemen South"] <- "MENA"
-rt$region[rt$country=="Germany East"] <- "EECA"
-rt$region[rt$country=="Taiwan"] <- "Asia"
-rt$region[rt$country=="Serbia and Montenegro"] <- "EECA"
-rt$region[rt$country=="Serbia"] <- "EECA"
+rt$region[rt$country=="Yemen People's Republic"] <- "MENA"
+rt$region[rt$country=="German Democratic Republic"] <- "EECA"
 rt$region[rt$country=="Yugoslavia"] <- "EECA"
 rt$region[rt$country=="Macedonia"] <- "EECA"
-rt$region[rt$country=="Kosovo"] <- "EECA"
+rt$region[rt$country=="Federated States of Micronesia"] <- "Asia"
 rt$region[rt$country=="Montenegro"] <- "EECA"
 
 rt$region <- as.factor(rt$region)
@@ -364,8 +366,6 @@ rt.merge <- merge(rt, muslim.x, all.x = T)
 
 # test
 rt.merge$muslim[rt.merge$country=="United Kingdom"]
-names(rt.merge)
-
 rt <- rt.merge
 
 #rt$pop.wdi <- as.character(rt$pop.wdi)
