@@ -73,6 +73,12 @@ rt <- x[x$Year>1978,c(1,2,6,8)]
 names(rt) <- c("year","ccode","country","idealpoint" )
 rt <- arrange(rt, ccode, year)
 
+# add extra countries
+extra.countries <- read.csv("voeten-added.csv")
+voeten.prob <- which(rt$country %in% c("Iraq","South Africa","Liechtenstein","South Korea","Eritrea","Somalia","Niger","Liberia"))
+rt <- rt[-voeten.prob,]
+rt <- rbind(rt, extra.countries)
+
 ###############
 #### Codes ####
 ###############
@@ -88,6 +94,8 @@ rt$worldbank[rt$country=="German Democratic Republic"] <- "DDR"
 rt$worldbank[rt$country=="Czechoslovakia"] <- "CSK"
 rt$worldbank[rt$country=="Yemen Arab Republic"] <- "YEM"
 rt$worldbank[rt$country=="Yemen People's Republic"] <- "YDR"
+rt$worldbank[rt$country=="Palestine"] <- "WBG"
+unique(rt$country[is.na(rt$worldbank)])
 
 #### UN ####
 ############
@@ -299,8 +307,6 @@ rt$amnesty.uas[rt$year<1985] <- NA
 ##### Region #####
 ##################
 
-## NEEDS WORK
-
 rt$region<- NA
 n <- nrow(countries)
 for (i in 1:n){
@@ -316,6 +322,7 @@ rt$region[rt$country=="Yugoslavia"] <- "EECA"
 rt$region[rt$country=="Macedonia"] <- "EECA"
 rt$region[rt$country=="Federated States of Micronesia"] <- "Asia"
 rt$region[rt$country=="Montenegro"] <- "EECA"
+rt$region[rt$country=="Palestine"] <- "MENA"
 
 rt$region <- as.factor(rt$region)
 summary(rt$region)
@@ -334,24 +341,22 @@ summary(murdie$lnreportcount)
 muslim.org <- muslim
 muslim <- muslim.org
 
-muslim$ccode<- countrycode(muslim$Country, "country.name", "cown")
+muslim$wb<- countrycode(muslim$Country, "country.name", "wb")
 muslim <- muslim[,c(3,5,8)]
-names(muslim) <- c("1990", "2010","ccode")
-muslim <- melt(muslim, id.var = "ccode", variable.name = "year")
+names(muslim) <- c("1990", "2010","worldbank")
+muslim <- melt(muslim, id.var = "worldbank", variable.name = "year")
 
-rt.sub <- rt[,c("ccode","year")]
+rt.sub <- rt[,c("worldbank","year")]
 row.names(rt.sub) <- 1:nrow(rt.sub)
 muslim <- merge(rt.sub, muslim, all.x = T)
-x<- data.frame(cbind(muslim$year,muslim$ccode))
+x<- data.frame(cbind(muslim$year,muslim$worldbank))
 x <- which(duplicated(x))
 x
 muslim <- muslim[-x,]
-
-muslim <- arrange(muslim, ccode)
-
+muslim <- arrange(muslim, worldbank)
 impute <- function(var){
   DT <- data.table(
-    id    = muslim$ccode,
+    id    = muslim$worldbank,
     date  = as.numeric(as.character(muslim$year)),
     value = var
   )
@@ -360,8 +365,8 @@ impute <- function(var){
 }
 
 muslim$value2<- impute(muslim$value)
-muslim.x <- muslim[,c("ccode","year","value2")]
-names(muslim.x) <- c("ccode","year","muslim")
+muslim.x <- muslim[,c("worldbank","year","value2")]
+names(muslim.x) <- c("worldbank","year","muslim")
 rt.merge <- merge(rt, muslim.x, all.x = T)
 
 # test
