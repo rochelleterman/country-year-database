@@ -60,8 +60,8 @@ wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
 wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
 nyt <- read.csv("Data/NYT_violations/nyt.violations.csv")
 am <- read.csv("Data/Amnesty/amnesty_processed.csv")
-problem.countries <- read.csv("problematic_countries.csv")
-countries <- read.csv("country_codes.csv")
+problem.countries <- read.csv("Country-Codes/problematic_countries.csv")
+countries <- read.csv("Country-Codes/country_codes.csv")
 muslim <- read.csv("Data/muslim-pop.csv")
 
 #############################
