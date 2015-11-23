@@ -39,7 +39,7 @@ library("WDI")
 library("countrycode")
 library(statar) # for missing values
 rm(list=ls())
-setwd("~/Dropbox/berkeley/Dissertation/Data\ and\ Analyais/Git\ Repos/country-year-database")
+setwd("~/Dropbox/berkeley/Git-Repos/country-year-database")
 
 ###### Load other people's data to get started
 
