@@ -34,11 +34,11 @@
 ### 33. nyt: Number of NYT human rights articles (Terman)
 ### 34. Region (based on Hafner-Burton and Ron's (2012) categories)
 
+rm(list=ls())
 library("foreign")
 library("WDI")
 library("countrycode")
 library(statar) # for missing values
-rm(list=ls())
 setwd("~/Dropbox/berkeley/Git-Repos/country-year-database")
 
 ###### Load other people's data to get started
@@ -60,24 +60,30 @@ wdi.gdp <- read.csv("Data/WDI/wdi-gdp.csv")
 wdi.pop <- read.csv("Data/WDI/wdi-pop.csv")
 nyt <- read.csv("Data/NYT_violations/nyt.violations.csv")
 am <- read.csv("Data/Amnesty/amnesty_processed.csv")
-problem.countries <- read.csv("Country-Codes/problematic_countries.csv")
-countries <- read.csv("Country-Codes/country_codes.csv")
+problem.countries <- read.csv("Data/Country-Codes/problematic_countries.csv")
+countries <- read.csv("Data/Country-Codes/country_codes.csv")
 muslim <- read.csv("Data/muslim-pop.csv")
 
 #############################
 ##### Start with Voeten #####
 #############################
 
-load("Data/Idealpoints.RData")
+load("Data/Voeten/Idealpoints.RData")
 rt <- x[x$Year>1978,c(1,2,6,8)]
 names(rt) <- c("year","ccode","country","idealpoint" )
 rt <- arrange(rt, ccode, year)
 
+# entries for each country
+voeten.obs <- cbind(table(rt$country))
+
 # add extra countries
-extra.countries <- read.csv("voeten-added.csv")
-voeten.prob <- which(rt$country %in% c("Iraq","South Africa","Liechtenstein","South Korea","Eritrea","Somalia","Niger","Liberia"))
+extra.countries <- read.csv("Data/voeten/voeten-added.csv")
+voeten.prob <- which(rt$country %in% c("Iraq","South Africa","Liechtenstein","South Korea","Eritrea","Somalia","Niger","Liberia", "Switzerland"))
 rt <- rt[-voeten.prob,]
 rt <- rbind(rt, extra.countries)
+
+# entries for each country
+rt.obs <- cbind(table(rt$country))
 
 ###############
 #### Codes ####
@@ -95,13 +101,14 @@ rt$worldbank[rt$country=="Czechoslovakia"] <- "CSK"
 rt$worldbank[rt$country=="Yemen Arab Republic"] <- "YEM"
 rt$worldbank[rt$country=="Yemen People's Republic"] <- "YDR"
 rt$worldbank[rt$country=="Palestine"] <- "WBG"
+rt$worldbank[rt$country=="Serbia"] <- "SRB"
 unique(rt$country[is.na(rt$worldbank)])
 
 #### UN ####
 ############
 
 rt$un <- countrycode(rt$worldbank,"wb","un") #UN
-unique(rt$country[is.na(rt$un)])
+unique(cbind(rt[is.na(rt$un), c("country", "year")]))
 
 #### iso2c ####
 ###############
@@ -126,6 +133,34 @@ rt$iso3c[rt$country=="Yemen People's Republic"] <- "YMD"
 ##### Re-Order Columns
 rt <- rt[,c(1,2,3,5,6,7,8,4)]
 
+##################
+##### Region #####
+##################
+
+regions <- unique(countries[,c("iso3c", "Region")])
+names(regions) <- c("iso3c", "region")
+rt <- merge(rt, regions, by = "iso3c", all.x = T)
+
+rt$region[rt$country=="Czechoslovakia"] <- "EECA"
+rt$region[rt$country=="Yemen People's Republic"] <- "MENA"
+rt$region[rt$country=="German Democratic Republic"] <- "EECA"
+rt$region[rt$country=="Yugoslavia"] <- "EECA"
+rt$region[rt$country=="Macedonia"] <- "EECA"
+rt$region[rt$country=="Federated States of Micronesia"] <- "Asia"
+rt$region[rt$country=="Montenegro"] <- "EECA"
+rt$region[rt$country=="Palestine"] <- "MENA"
+rt$region[rt$country=="Nauru"] <- "Asia"
+rt$region[rt$country=="Marshall Islands"] <- "Asia"
+rt$region[rt$country=="Serbia"] <- "EECA"
+rt$region[rt$country=="Taiwan"] <- "Asia"
+
+# any missing?
+unique(rt$country[is.na(rt$region)])
+
+# quick summary
+rt$region <- as.factor(rt$region)
+summary(rt$region)
+
 #######################
 ##### Add Polity #####
 ######################
@@ -145,7 +180,7 @@ summary(rt$polity)
 ciri.subset <- subset(ciri, YEAR > 1978 & YEAR < 2015, select=c(YEAR,COW,UNREG,PHYSINT,SPEECH,NEW_EMPINX,WECON,WOPOL,WOSOC,ELECSD))
 names(ciri.subset) <- c("year","ccode","unreg","physint","speech","new_empinx","wecon","wopol","wosoc","elecsd")
 rt.merge <- merge(rt,ciri.subset,by=c("year","ccode"),all.x=TRUE)
-x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
+x<- data.frame(cbind(rt.merge$year,rt.merge$iso3c, rt.merge$un,  rt.merge$country, rt.merge$country))
 x <- which(duplicated(x))
 rt.merge <- rt.merge[-x,]
 rt <- rt.merge
@@ -167,7 +202,7 @@ names(wdi.gdp) # GDP per capita (current US$)
 wdi.gdp$country <- NULL
 #write.csv(wdi.gdp,file="Data/WDI/wdi-gdp.csv") 
 rt <- merge(rt,wdi.gdp,by=c("year","iso2c"),all.x=TRUE) # TODO: switch to "wb"?
-names(rt)[21] <- "gdp.pc.wdi"
+names(rt)[22] <- "gdp.pc.wdi"
 summary(rt$gdp.pc.wdi)
 
 # From UN Data
@@ -190,7 +225,7 @@ names(wdi.pop) # GDP per capita (current US$)
 # subset
 wdi.pop$country <- NULL
 rt <- merge(rt,wdi.pop,by=c("year","iso2c"),all.x=TRUE)
-names(rt)[23] <- "pop.wdi"
+names(rt)[24] <- "pop.wdi"
 summary(rt$pop.wdi)
 
 ###############
@@ -198,9 +233,9 @@ summary(rt$pop.wdi)
 ###############
 
 names(PTS)
-pts <- subset(PTS,Year>1978 & Year<2015, select=c("COW","Year","Amnesty","StateDept"))
-names(pts) <- c("ccode","year","amnesty","statedept")
-rt.merge <- merge(rt,pts,by=c("ccode","year"), all.x = TRUE)
+pts <- subset(PTS,Year>1978 & Year<2015, select=c("WorldBank","Year","Amnesty","StateDept"))
+names(pts) <- c("worldbank","year","amnesty","statedept")
+rt.merge <- merge(rt,pts,by=c("worldbank","year"), all.x = TRUE)
 rt <- rt.merge
 
 #########################################
@@ -211,25 +246,6 @@ cinc.sub <- subset(cinc,year>1978 & year<2015,select=c("ccode","year","milper","
 rt.merge <- merge(rt,cinc.sub,by=c("ccode","year"), all.x = TRUE)
 rt.merge$milper[rt.merge$milper=="-9"] <- NA # replace -9 with NA
 rt <- rt.merge
-
-########################
-#### Battle Deaths #####
-########################
-
-battle.sub <- subset(battle,year>1978 & year<2015,select=c("year","bdeadbes","location"))
-names(battle.sub) <- c("year","bdeadbest","country")
-summary(battle.sub$country) # note there are some multiple countries here that I don't know what to do with - return to it later.
-names(rt)
-
-rt.merge <-merge(rt,battle.sub,by=c("country","year"), all.x = TRUE)
-x<- data.frame(cbind(rt.merge$year,rt.merge$ccode))
-x <- which(duplicated(x))
-x
-rt.merge <- rt.merge[-x,]
-rt.merge$bdeadbest[is.na(rt.merge$bdeadbest)] <- 0
-rt.merge$bdeadbest[rt.merge$bdeadbest == "-999"] <- NA 
-rt <- rt.merge
-summary(rt$bdeadbest)
 
 #####################
 ##### INGO ties #####
@@ -252,6 +268,90 @@ names(cnts.sub) <- c("year","worldbank","domestic9")
 rt.merge <- merge(rt,cnts.sub,by=c("year","worldbank"),all.x=TRUE)
 rt <- rt.merge
 summary(rt$domestic9)
+
+#################################
+##### Murdie - Media Exp  #######
+#################################
+
+murdie.subset<- subset(murdie,select=c("ccode","year","lnreportcount"))
+rt <- merge(rt,murdie.subset,by=c("year","ccode"),all.x=TRUE)
+summary(murdie$lnreportcount)
+
+####################
+##### Muslim #######
+####################
+
+muslim.org <- muslim
+muslim <- muslim.org
+
+muslim$wb<- countrycode(muslim$Country, "country.name", "wb")
+muslim <- muslim[,c(3,5,8)]
+names(muslim) <- c("1990", "2010","worldbank")
+muslim <- melt(muslim, id.var = "worldbank", variable.name = "year")
+
+rt.sub <- rt[,c("worldbank","year")]
+row.names(rt.sub) <- 1:nrow(rt.sub)
+muslim <- merge(rt.sub, muslim, all.x = T)
+x<- data.frame(cbind(muslim$year,muslim$worldbank))
+x <- which(duplicated(x))
+x
+muslim <- muslim[-x,]
+muslim <- arrange(muslim, worldbank)
+impute <- function(var){
+  DT <- data.table(
+    id    = muslim$worldbank,
+    date  = as.numeric(as.character(muslim$year)),
+    value = var
+  )
+  setna(DT, along_with = date, by = id, roll = "nearest")
+  return(DT$value)
+}
+
+muslim$value2<- impute(muslim$value)
+muslim.x <- muslim[,c("worldbank","year","value2")]
+names(muslim.x) <- c("worldbank","year","muslim")
+rt.merge <- merge(rt, muslim.x, all.x = T)
+
+# test
+rt.merge$muslim[rt.merge$country=="United Kingdom"]
+rt <- rt.merge
+
+####################
+##### WRITE #######
+####################
+
+#rt$pop.wdi <- as.character(rt$pop.wdi)
+#rt$nyt.lagged <-  as.character(rt$nyt.lagged)
+#rt$muslim <- as.character(rt$muslim)
+
+table(rt$country)
+
+write.csv(rt,"rt.csv", row.names = F)
+rt.no.us <- subset(rt,!rt$iso3c=="USA")
+write.csv(rt.no.us,"rt.no.us.csv", row.names = F)
+
+# ==============================================================================
+
+### NEEDS WORK
+
+########################
+#### Battle Deaths #####
+########################
+
+battle.sub <- subset(battle,year>1978 & year<2015,select=c("year","bdeadbes","location"))
+names(battle.sub) <- c("year","bdeadbest","country")
+summary(battle.sub$country) # note there are some multiple countries here that I don't know what to do with - return to it later.
+names(rt)
+
+rt.merge <-merge(rt,battle.sub,by=c("country","year"), all.x = TRUE)
+x<- data.frame(cbind(rt.merge$year,rt.merge$worldbank))
+x <- which(duplicated(x))
+x
+rt.merge <- rt.merge[-x,]
+rt.merge$bdeadbest[is.na(rt.merge$bdeadbest)] <- 0
+rt.merge$bdeadbest[rt.merge$bdeadbest == "-999"] <- NA 
+rt <- rt.merge
+summary(rt$bdeadbest)
 
 ##############################
 ##### NYT Media Coverage #####
@@ -302,83 +402,3 @@ summary(rt$amnesty.uas)
 
 # Assign NAs for all years < 1985
 rt$amnesty.uas[rt$year<1985] <- NA
-
-##################
-##### Region #####
-##################
-
-rt$region<- NA
-n <- nrow(countries)
-for (i in 1:n){
-  country <- countries$iso3c[i]
-  rt$region[rt$rt_code==country]<-as.character(countries$Region[i])
-}
-unique(rt$country[is.na(rt$region)])
-
-rt$region[rt$country=="Czechoslovakia"] <- "EECA"
-rt$region[rt$country=="Yemen People's Republic"] <- "MENA"
-rt$region[rt$country=="German Democratic Republic"] <- "EECA"
-rt$region[rt$country=="Yugoslavia"] <- "EECA"
-rt$region[rt$country=="Macedonia"] <- "EECA"
-rt$region[rt$country=="Federated States of Micronesia"] <- "Asia"
-rt$region[rt$country=="Montenegro"] <- "EECA"
-rt$region[rt$country=="Palestine"] <- "MENA"
-
-rt$region <- as.factor(rt$region)
-summary(rt$region)
-
-#################################
-##### Murdie - Media Exp  #######
-#################################
-
-murdie.subset<- subset(murdie,select=c("ccode","year","lnreportcount"))
-rt <- merge(rt,murdie.subset,by=c("year","ccode"),all.x=TRUE)
-summary(murdie$lnreportcount)
-
-####################
-##### Muslim #######
-####################
-muslim.org <- muslim
-muslim <- muslim.org
-
-muslim$wb<- countrycode(muslim$Country, "country.name", "wb")
-muslim <- muslim[,c(3,5,8)]
-names(muslim) <- c("1990", "2010","worldbank")
-muslim <- melt(muslim, id.var = "worldbank", variable.name = "year")
-
-rt.sub <- rt[,c("worldbank","year")]
-row.names(rt.sub) <- 1:nrow(rt.sub)
-muslim <- merge(rt.sub, muslim, all.x = T)
-x<- data.frame(cbind(muslim$year,muslim$worldbank))
-x <- which(duplicated(x))
-x
-muslim <- muslim[-x,]
-muslim <- arrange(muslim, worldbank)
-impute <- function(var){
-  DT <- data.table(
-    id    = muslim$worldbank,
-    date  = as.numeric(as.character(muslim$year)),
-    value = var
-  )
-  setna(DT, along_with = date, by = id, roll = "nearest")
-  return(DT$value)
-}
-
-muslim$value2<- impute(muslim$value)
-muslim.x <- muslim[,c("worldbank","year","value2")]
-names(muslim.x) <- c("worldbank","year","muslim")
-rt.merge <- merge(rt, muslim.x, all.x = T)
-
-# test
-rt.merge$muslim[rt.merge$country=="United Kingdom"]
-rt <- rt.merge
-
-#rt$pop.wdi <- as.character(rt$pop.wdi)
-#rt$nyt.lagged <-  as.character(rt$nyt.lagged)
-#rt$muslim <- as.character(rt$muslim)
-
-write.csv(rt,"rt.csv", row.names = F)
-
-rt.no.us <- subset(rt,!rt$country=="United States")
-write.csv(rt.no.us,"rt.no.us.csv", row.names = F)
-
